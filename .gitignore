@@ -3,60 +3,41 @@
 *.pyc
 __pycache__/
 
-# Virtual environments
+# Dependencies
 venv/
 .venv/
 .env
 .env.local
 *.env.*
 
-# Logs
+# Logs and temp files
 *.log
-
-# Editor/IDE files
-.vscode/
-.idea/
-*.swp
-*.swo
 *.tmp
 
-# Dependencies and builds
-node_modules/
-dist/
-build/
-target/
-.gradle/
-.mypy_cache/
-.pytest_cache/
+# Editors
+.vscode/
+.idea/
+
+# Coverage reports
+.coverage
 coverage/
 htmlcov/
-.coverage
 
-# System files
-.DS_Store
-Thumbs.db
+# Python specific
+*.pyo
+*.pyd
+.Python
+*.so
+*.egg-info/
+.eggs/
 
-# Compressed files
-*.zip
-*.gz
-*.tar
-*.tgz
-*.bz2
-*.xz
-*.7z
-*.rar
-*.zst
-*.lz4
-*.lzh
-*.cab
-*.arj
-*.rpm
-*.deb
-*.Z
-*.lz
-*.lzo
-*.tar.gz
-*.tar.bz2
-*.tar.xz
-*.tar.zst
+# Web artifacts
+dist/
+build/
+node_modules/
+
+# Backup files
+*.bak
+*.swp
+*~
 ```
