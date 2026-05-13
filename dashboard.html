@@ -1,0 +1,853 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stock Market Tycoon - Dashboard</title>
+    <style>
+        :root {
+            --bg-dark: #1a1a2e;
+            --bg-panel: #16213e;
+            --accent: #0f3460;
+            --highlight: #e94560;
+            --text-light: #eee;
+            --text-dim: #aaa;
+            --success: #4caf50;
+            --danger: #f44336;
+            --warning: #ff9800;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-light);
+            overflow-x: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, var(--accent), var(--bg-panel));
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+
+        .header h1 {
+            font-size: 2em;
+            margin-bottom: 10px;
+            color: var(--highlight);
+        }
+
+        .game-info {
+            display: flex;
+            justify-content: space-around;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .info-card {
+            background: rgba(255,255,255,0.1);
+            padding: 10px 20px;
+            border-radius: 8px;
+            min-width: 150px;
+        }
+
+        .info-card label {
+            display: block;
+            font-size: 0.85em;
+            color: var(--text-dim);
+            margin-bottom: 5px;
+        }
+
+        .info-card .value {
+            font-size: 1.3em;
+            font-weight: bold;
+        }
+
+        .main-container {
+            display: grid;
+            grid-template-columns: 1fr 350px;
+            gap: 20px;
+            padding: 20px;
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        .market-section {
+            background: var(--bg-panel);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+        }
+
+        .sector-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .sector-card {
+            background: rgba(255,255,255,0.05);
+            border-radius: 8px;
+            padding: 15px;
+            border-left: 4px solid var(--highlight);
+        }
+
+        .sector-card h3 {
+            color: var(--highlight);
+            margin-bottom: 10px;
+            font-size: 1.1em;
+        }
+
+        .company-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .company-item:last-child {
+            border-bottom: none;
+        }
+
+        .company-info {
+            flex: 1;
+        }
+
+        .company-name {
+            font-weight: bold;
+            font-size: 0.95em;
+        }
+
+        .company-price {
+            color: var(--success);
+            font-weight: bold;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 5px;
+        }
+
+        .btn {
+            padding: 5px 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.85em;
+            transition: all 0.2s;
+        }
+
+        .btn-buy {
+            background: var(--success);
+            color: white;
+        }
+
+        .btn-buy:hover {
+            background: #45a049;
+        }
+
+        .btn-sell {
+            background: var(--danger);
+            color: white;
+        }
+
+        .btn-sell:hover {
+            background: #d32f2f;
+        }
+
+        .btn-action {
+            background: var(--highlight);
+            color: white;
+            padding: 10px 20px;
+            font-size: 1em;
+        }
+
+        .btn-action:hover {
+            background: #c73e54;
+        }
+
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .player-panel {
+            background: var(--bg-panel);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+        }
+
+        .player-panel h3 {
+            color: var(--highlight);
+            margin-bottom: 15px;
+            border-bottom: 2px solid var(--accent);
+            padding-bottom: 10px;
+        }
+
+        .player-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .player-item {
+            background: rgba(255,255,255,0.05);
+            padding: 12px;
+            border-radius: 6px;
+            border-left: 3px solid transparent;
+        }
+
+        .player-item.active {
+            border-left-color: var(--highlight);
+            background: rgba(233, 69, 96, 0.1);
+        }
+
+        .player-item.bankrupt {
+            opacity: 0.5;
+            border-left-color: var(--text-dim);
+        }
+
+        .player-name {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .player-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 5px;
+            font-size: 0.85em;
+            color: var(--text-dim);
+        }
+
+        .player-stats span strong {
+            color: var(--text-light);
+        }
+
+        .portfolio-section {
+            background: var(--bg-panel);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+        }
+
+        .portfolio-list {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .portfolio-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px;
+            background: rgba(255,255,255,0.05);
+            margin-bottom: 8px;
+            border-radius: 4px;
+        }
+
+        .controls-section {
+            background: var(--bg-panel);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--bg-panel);
+            padding: 30px;
+            border-radius: 12px;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+
+        .modal-header {
+            margin-bottom: 20px;
+        }
+
+        .modal-header h2 {
+            color: var(--highlight);
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: var(--text-dim);
+        }
+
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid var(--accent);
+            border-radius: 4px;
+            background: rgba(255,255,255,0.05);
+            color: var(--text-light);
+            font-size: 1em;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 20px;
+        }
+
+        .btn-cancel {
+            background: var(--text-dim);
+            color: var(--bg-dark);
+        }
+
+        .event-log {
+            background: var(--bg-panel);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .event-item {
+            padding: 8px;
+            background: rgba(255,255,255,0.05);
+            margin-bottom: 8px;
+            border-radius: 4px;
+            font-size: 0.85em;
+            border-left: 3px solid var(--warning);
+        }
+
+        .trend-up {
+            color: var(--success);
+        }
+
+        .trend-down {
+            color: var(--danger);
+        }
+
+        /* Setup Screen */
+        .setup-screen {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background: var(--bg-dark);
+            padding: 20px;
+        }
+
+        .setup-card {
+            background: var(--bg-panel);
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            max-width: 600px;
+            width: 100%;
+        }
+
+        .setup-card h1 {
+            color: var(--highlight);
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .mode-select {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .mode-option {
+            padding: 20px;
+            background: rgba(255,255,255,0.05);
+            border: 2px solid var(--accent);
+            border-radius: 8px;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.3s;
+        }
+
+        .mode-option:hover, .mode-option.selected {
+            border-color: var(--highlight);
+            background: rgba(233, 69, 96, 0.1);
+        }
+
+        .mode-option h3 {
+            color: var(--highlight);
+            margin-bottom: 10px;
+        }
+
+        .mode-option p {
+            font-size: 0.85em;
+            color: var(--text-dim);
+        }
+
+        .player-inputs {
+            margin: 20px 0;
+        }
+
+        .player-input-row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .player-input-row input {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid var(--accent);
+            border-radius: 4px;
+            background: rgba(255,255,255,0.05);
+            color: var(--text-light);
+        }
+
+        .btn-add-player {
+            background: var(--accent);
+            color: white;
+            padding: 8px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg-dark);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--accent);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--highlight);
+        }
+    </style>
+</head>
+<body>
+    <!-- Setup Screen -->
+    <div id="setupScreen" class="setup-screen">
+        <div class="setup-card">
+            <h1>📈 Stock Market Tycoon</h1>
+            
+            <div class="form-group">
+                <label>Selecciona Modo de Juego:</label>
+                <div class="mode-select">
+                    <div class="mode-option" data-mode="quick" onclick="selectMode('quick')">
+                        <h3>Rápida</h3>
+                        <p>15 min<br>2-4 jugadores<br>Mayor valor de mercado</p>
+                    </div>
+                    <div class="mode-option selected" data-mode="standard" onclick="selectMode('standard')">
+                        <h3>Estándar</h3>
+                        <p>30-45 min<br>3-6 jugadores<br>50 puntos influencia</p>
+                    </div>
+                    <div class="mode-option" data-mode="extended" onclick="selectMode('extended')">
+                        <h3>Extendida</h3>
+                        <p>90 min<br>4-8 jugadores<br>Control de sectores</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="player-inputs" id="playerInputs">
+                <label>Jugadores:</label>
+                <div class="player-input-row">
+                    <input type="text" placeholder="Jugador 1" value="Inversionista 1">
+                    <input type="text" placeholder="Jugador 2" value="Inversionista 2">
+                </div>
+                <div class="player-input-row">
+                    <input type="text" placeholder="Jugador 3" value="Inversionista 3">
+                    <input type="text" placeholder="Jugador 4" value="Inversionista 4">
+                </div>
+            </div>
+
+            <button class="btn btn-action" style="width: 100%; padding: 15px;" onclick="startGame()">
+                🚀 Iniciar Partida
+            </button>
+        </div>
+    </div>
+
+    <!-- Game Dashboard -->
+    <div id="gameDashboard" class="hidden">
+        <div class="header">
+            <h1>📈 Stock Market Tycoon</h1>
+            <div class="game-info">
+                <div class="info-card">
+                    <label>Ronda</label>
+                    <span class="value" id="roundNumber">1</span>
+                </div>
+                <div class="info-card">
+                    <label>Turbo Actual</label>
+                    <span class="value" id="currentPlayer">-</span>
+                </div>
+                <div class="info-card">
+                    <label>Jugadores Activos</label>
+                    <span class="value" id="activePlayers">0</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="main-container">
+            <!-- Market Section -->
+            <div class="market-section">
+                <h2 style="color: var(--highlight); margin-bottom: 15px;">🏢 Mercado de Valores</h2>
+                <div id="sectorGrid" class="sector-grid">
+                    <!-- Sectors will be populated here -->
+                </div>
+            </div>
+
+            <!-- Sidebar -->
+            <div class="sidebar">
+                <!-- Players Panel -->
+                <div class="player-panel">
+                    <h3>👥 Jugadores</h3>
+                    <div id="playerList" class="player-list">
+                        <!-- Players will be populated here -->
+                    </div>
+                </div>
+
+                <!-- Controls -->
+                <div class="controls-section">
+                    <button class="btn btn-action" onclick="nextTurn()" style="width: 100%;">
+                        ⏭️ Siguiente Turno
+                    </button>
+                    <button class="btn" style="background: var(--warning); color: white; width: 100%;" onclick="triggerEvent()">
+                        🎲 Evento Aleatorio
+                    </button>
+                    <button class="btn" style="background: var(--accent); color: white; width: 100%;" onclick="refreshData()">
+                        🔄 Actualizar
+                    </button>
+                </div>
+
+                <!-- Event Log -->
+                <div class="event-log">
+                    <h3 style="color: var(--highlight); margin-bottom: 10px;">📰 Eventos Recientes</h3>
+                    <div id="eventLog">
+                        <!-- Events will be populated here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Trade Modal -->
+    <div id="tradeModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitle">Comprar Acciones</h2>
+            </div>
+            <div class="form-group">
+                <label>Empresa:</label>
+                <input type="text" id="modalCompany" readonly>
+            </div>
+            <div class="form-group">
+                <label>Cantidad:</label>
+                <input type="number" id="modalQuantity" min="1" max="100" value="10">
+            </div>
+            <div class="form-group">
+                <label>Precio por acción: $<span id="modalPrice">0</span></label>
+                <label>Total estimado: $<span id="modalTotal">0</span></label>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-cancel" onclick="closeModal()">Cancelar</button>
+                <button class="btn btn-buy" id="modalConfirmBtn" onclick="confirmTrade()">Confirmar</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentMode = 'standard';
+        let currentTrade = null; // {type: 'buy'|'sell', company_id, company_name, price}
+        let gameState = null;
+
+        // Mode selection
+        function selectMode(mode) {
+            currentMode = mode;
+            document.querySelectorAll('.mode-option').forEach(el => {
+                el.classList.remove('selected');
+                if (el.dataset.mode === mode) {
+                    el.classList.add('selected');
+                }
+            });
+        }
+
+        // Start game - Flask version
+        async function startGame() {
+            const playerInputs = document.querySelectorAll('#playerInputs input');
+            const playerNames = Array.from(playerInputs)
+                .map(input => input.value.trim())
+                .filter(name => name.length > 0);
+
+            if (playerNames.length < 2) {
+                alert('Se necesitan al menos 2 jugadores');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/create_game', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ mode: currentMode, players: playerNames })
+                });
+                
+                const result = await response.json();
+                
+                if (result.status === 'success') {
+                    document.getElementById('setupScreen').classList.add('hidden');
+                    document.getElementById('gameDashboard').classList.remove('hidden');
+                    refreshData();
+                } else {
+                    alert('Error: ' + result.message);
+                }
+            } catch (error) {
+                console.error('Error starting game:', error);
+                alert('Error al iniciar la partida');
+            }
+        }
+
+        // Refresh game data - Flask version
+        async function refreshData() {
+            try {
+                const response = await fetch('/api/game_state');
+                gameState = await response.json();
+                
+                if (gameState.error) {
+                    console.log('No active game');
+                    return;
+                }
+
+                updateUI(gameState);
+            } catch (error) {
+                console.error('Error refreshing data:', error);
+            }
+        }
+
+        // Update UI with game state
+        function updateUI(state) {
+            // Update header info
+            document.getElementById('roundNumber').textContent = state.round || 1;
+            
+            const playerNames = state.players.map(p => p.name);
+            const currentPlayerIdx = state.current_player || 0;
+            document.getElementById('currentPlayer').textContent = playerNames[currentPlayerIdx] || '-';
+            
+            const activeCount = state.players.filter(p => !p.bankrupt).length;
+            document.getElementById('activePlayers').textContent = activeCount;
+
+            // Update market sectors
+            const sectorGrid = document.getElementById('sectorGrid');
+            sectorGrid.innerHTML = '';
+            
+            for (const [sectorName, sectorData] of Object.entries(state.market)) {
+                const sectorCard = document.createElement('div');
+                sectorCard.className = 'sector-card';
+                
+                let companiesHTML = '';
+                sectorData.companies.forEach(company => {
+                    companiesHTML += `
+                        <div class="company-item">
+                            <div class="company-info">
+                                <div class="company-name">${company.name}</div>
+                                <div style="font-size: 0.85em; color: var(--text-dim);">Disp: ${company.available_shares}/${company.total_shares}</div>
+                            </div>
+                            <div style="text-align: right;">
+                                <div class="company-price">$${company.price.toFixed(2)}</div>
+                                <div class="action-buttons">
+                                    <button class="btn btn-buy" onclick="openTradeModal('buy', '${company.id}', '${company.name}', ${company.price})">Comprar</button>
+                                    <button class="btn btn-sell" onclick="openTradeModal('sell', '${company.id}', '${company.name}', ${company.price})">Vender</button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                sectorCard.innerHTML = `
+                    <h3>${sectorName}</h3>
+                    ${companiesHTML}
+                `;
+                sectorGrid.appendChild(sectorCard);
+            }
+
+            // Update player list
+            const playerList = document.getElementById('playerList');
+            playerList.innerHTML = '';
+            
+            state.players.forEach((player, idx) => {
+                const playerItem = document.createElement('div');
+                playerItem.className = `player-item ${idx === state.current_player ? 'active' : ''} ${player.bankrupt ? 'bankrupt' : ''}`;
+                
+                const portfolioCount = Object.keys(player.portfolio).length;
+                
+                playerItem.innerHTML = `
+                    <div class="player-name">${player.name} ${idx === state.current_player ? '👉' : ''}</div>
+                    <div class="player-stats">
+                        <span>Efectivo: <strong>$${player.cash.toFixed(0)}</strong></span>
+                        <span>Influencia: <strong>${player.influence}</strong></span>
+                        <span>Acciones: <strong>${portfolioCount}</strong> empresas</span>
+                        <span>Cartas: <strong>${player.cards ? player.cards.length : 0}</strong></span>
+                    </div>
+                `;
+                playerList.appendChild(playerItem);
+            });
+
+            // Update event log
+            const eventLog = document.getElementById('eventLog');
+            if (state.events && state.events.length > 0) {
+                eventLog.innerHTML = state.events.map(event => `
+                    <div class="event-item">${event}</div>
+                `).join('');
+            } else {
+                eventLog.innerHTML = '<div style="color: var(--text-dim); font-size: 0.85em;">Sin eventos recientes</div>';
+            }
+        }
+
+        // Trade modal
+        function openTradeModal(type, companyId, companyName, price) {
+            currentTrade = { type, companyId, companyName, price };
+            
+            const modal = document.getElementById('tradeModal');
+            const title = document.getElementById('modalTitle');
+            const companyInput = document.getElementById('modalCompany');
+            const priceSpan = document.getElementById('modalPrice');
+            const totalSpan = document.getElementById('modalTotal');
+            const confirmBtn = document.getElementById('modalConfirmBtn');
+            
+            title.textContent = type === 'buy' ? 'Comprar Acciones' : 'Vender Acciones';
+            companyInput.value = companyName;
+            priceSpan.textContent = price.toFixed(2);
+            
+            confirmBtn.textContent = type === 'buy' ? 'Comprar' : 'Vender';
+            confirmBtn.className = type === 'buy' ? 'btn btn-buy' : 'btn btn-sell';
+            confirmBtn.onclick = type === 'buy' ? () => confirmTrade('buy') : () => confirmTrade('sell');
+            
+            updateModalTotal();
+            modal.classList.add('active');
+            
+            document.getElementById('modalQuantity').oninput = updateModalTotal;
+        }
+
+        function updateModalTotal() {
+            const qty = parseInt(document.getElementById('modalQuantity').value) || 0;
+            const total = qty * currentTrade.price;
+            document.getElementById('modalTotal').textContent = total.toFixed(2);
+        }
+
+        function closeModal() {
+            document.getElementById('tradeModal').classList.remove('active');
+            currentTrade = null;
+        }
+
+        // Trade modal - Flask version
+        async function confirmTrade(tradeType) {
+            if (!currentTrade) return;
+            
+            const quantity = parseInt(document.getElementById('modalQuantity').value);
+            if (quantity <= 0) {
+                alert('Cantidad inválida');
+                return;
+            }
+
+            try {
+                const endpoint = tradeType === 'buy' ? '/api/buy_stock' : '/api/sell_stock';
+                const response = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        player_idx: 0,
+                        company_id: currentTrade.companyId,
+                        quantity: quantity
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.status === 'success') {
+                    closeModal();
+                    refreshData();
+                    alert(result.message);
+                } else {
+                    alert('Error: ' + result.message);
+                }
+            } catch (error) {
+                console.error('Trade error:', error);
+                alert('Error en la operación');
+            }
+        }
+
+        // Next turn - Flask version
+        async function nextTurn() {
+            try {
+                const response = await fetch('/api/next_turn', { method: 'POST' });
+                const state = await response.json();
+                
+                if (state.error) {
+                    alert('Error: ' + state.error);
+                } else {
+                    refreshData();
+                }
+            } catch (error) {
+                console.error('Next turn error:', error);
+                alert('Error al pasar turno');
+            }
+        }
+
+        // Trigger random event - Flask version
+        async function triggerEvent() {
+            try {
+                const response = await fetch('/api/trigger_event', { method: 'POST' });
+                const parsed = await response.json();
+                
+                alert(parsed.message);
+                refreshData();
+            } catch (error) {
+                console.error('Trigger event error:', error);
+                alert('Error al activar evento');
+            }
+        }
+
+        // Initialize
+        console.log('Stock Market Tycoon loaded');
+    </script>
+</body>
+</html>
