@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stock Market Tycoon</title>
+    <link rel="stylesheet" href="/css/styles.css">
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+</head>
+<body>
+    <div id="app">
+        <!-- Pantalla de Inicio -->
+        <div id="start-screen" class="screen active">
+            <h1>📈 Stock Market Tycoon</h1>
+            <p class="subtitle">Simulador de Mercado Bursátil</p>
+            
+            <div class="menu-container">
+                <button id="btn-local" class="menu-btn primary">🎮 Partida Local (vs IA)</button>
+                <button id="btn-online" class="menu-btn secondary">🌐 Multijugador Online</button>
+            </div>
+        </div>
+
+        <!-- Configuración de Partida Local -->
+        <div id="local-config-screen" class="screen">
+            <h2>Configurar Partida Local</h2>
+            
+            <div class="config-form">
+                <div class="form-group">
+                    <label>Tu Nombre:</label>
+                    <input type="text" id="local-player-name" placeholder="Tu nombre" value="Jugador 1">
+                </div>
+                
+                <div class="form-group">
+                    <label>Duración (Rondas):</label>
+                    <select id="local-rounds">
+                        <option value="10">Rápida (10 rondas)</option>
+                        <option value="20" selected>Estándar (20 rondas)</option>
+                        <option value="40">Extendida (40 rondas)</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label>Tiempo por Turno:</label>
+                    <select id="local-turn-time">
+                        <option value="30">30 segundos</option>
+                        <option value="60" selected>60 segundos</option>
+                        <option value="90">90 segundos</option>
+                    </select>
+                </div>
+                
+                <div class="form-group checkbox">
+                    <label>
+                        <input type="checkbox" id="local-events" checked>
+                        Activar Eventos Aleatorios
+                    </label>
+                </div>
+            </div>
+            
+            <div class="button-row">
+                <button id="btn-start-local" class="action-btn">Iniciar Partida</button>
+                <button id="btn-back-local" class="action-btn secondary">Volver</button>
+            </div>
+        </div>
+
+        <!-- Pantalla Multijugador -->
+        <div id="online-screen" class="screen">
+            <h2>Multijugador Online</h2>
+            
+            <div class="online-options">
+                <div class="option-card">
+                    <h3>Crear Sala</h3>
+                    <p>Genera un código para que otros se unan</p>
+                    <button id="btn-create-room" class="action-btn">Crear Sala</button>
+                </div>
+                
+                <div class="option-card">
+                    <h3>Unirse a Sala</h3>
+                    <p>Ingresa el código de la sala</p>
+                    <input type="text" id="room-code-input" placeholder="CÓDIGO" maxlength="6">
+                    <button id="btn-join-room" class="action-btn">Unirse</button>
+                </div>
+            </div>
+            
+            <button id="btn-back-online" class="action-btn secondary">Volver</button>
+        </div>
+
+        <!-- Lobby -->
+        <div id="lobby-screen" class="screen">
+            <h2>Sala: <span id="lobby-room-code" class="highlight"></span></h2>
+            <p>Esperando jugadores...</p>
+            
+            <div id="lobby-players" class="players-list"></div>
+            
+            <div class="lobby-actions">
+                <button id="btn-start-game" class="action-btn primary">Comenzar Partida</button>
+                <button id="btn-copy-code" class="action-btn secondary">Copiar Código</button>
+            </div>
+        </div>
+
+        <!-- Juego -->
+        <div id="game-screen" class="screen">
+            <div class="game-header">
+                <div class="turn-info">
+                    <span id="current-player-display">Turno: </span>
+                    <div id="turn-timer" class="timer">60</div>
+                </div>
+                <div class="round-info">
+                    Ronda <span id="current-round">1</span>/<span id="max-rounds">20</span>
+                </div>
+            </div>
+            
+            <div class="game-content">
+                <!-- Panel Izquierdo: Jugadores -->
+                <div class="panel players-panel">
+                    <h3>Ranking</h3>
+                    <div id="players-ranking" class="ranking-list"></div>
+                </div>
+                
+                <!-- Panel Central: Mercado -->
+                <div class="panel market-panel">
+                    <h3>Mercado de Acciones</h3>
+                    <div id="companies-grid" class="companies-grid"></div>
+                </div>
+                
+                <!-- Panel Derecho: Portfolio y Acciones -->
+                <div class="panel actions-panel">
+                    <h3>Tu Portfolio</h3>
+                    <div id="my-portfolio" class="portfolio-list"></div>
+                    
+                    <div class="trade-controls">
+                        <h4>Operar</h4>
+                        <select id="trade-company-select"></select>
+                        <input type="number" id="trade-quantity" min="1" max="100" value="1">
+                        <div class="trade-buttons">
+                            <button id="btn-buy" class="trade-btn buy">Comprar</button>
+                            <button id="btn-sell" class="trade-btn sell">Vender</button>
+                        </div>
+                    </div>
+                    
+                    <button id="btn-next-turn" class="action-btn full-width">Saltar Turno</button>
+                </div>
+            </div>
+            
+            <!-- Log de Eventos -->
+            <div class="event-log">
+                <h4>Eventos Recientes</h4>
+                <div id="events-list" class="events-list"></div>
+            </div>
+        </div>
+
+        <!-- Fin del Juego -->
+        <div id="game-over-screen" class="screen">
+            <h2>🏆 Juego Terminado</h2>
+            <div id="winner-display" class="winner-display"></div>
+            <div id="final-ranking" class="ranking-list"></div>
+            <button id="btn-new-game" class="action-btn">Nueva Partida</button>
+        </div>
+    </div>
+
+    <script src="/js/game.js"></script>
+</body>
+</html>
