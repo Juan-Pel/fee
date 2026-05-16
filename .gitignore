@@ -1,47 +1,52 @@
 ```
-# Python
+# Build artifacts
+build/
+*.o
+*.obj
+*.out
+*.exe
+*.dll
+*.so
+*.a
+
+# Dependencies
+venv/
+.venv/
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
-.Python
-env/
-venv/
-.venv/
-.ENV
-.python-version
-pip-log.txt
-pip-delete-this-directory.txt
-.tox/
-.coverage
-.coverage.*
-.cache
-nosetests.xml
-coverage.xml
-*.cover
-*.log
-.pytest_cache/
-.mypy_cache/
 
-# Distribution / packaging
-.Python
-env/
-venv/
-.venv/
-.ENV
-.python-version
-pip-log.txt
-pip-delete-this-directory.txt
-.tox/
-.coverage
-.coverage.*
-.cache
-nosetests.xml
-coverage.xml
-*.cover
+# Logs and temp files
 *.log
-.pytest_cache/
-.mypy_cache/
+*.tmp
+*.swp
+*.swo
+
+# Environment
+.env
+.env.local
+*.env.*
+
+# Editors
+.vscode/
+.idea/
+
+# OS specific
+.DS_Store
+Thumbs.db
+
+# Coverage
+coverage/
+htmlcov/
+.coverage
+
+# Python specific
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
 build/
 develop-eggs/
 dist/
@@ -58,18 +63,37 @@ wheels/
 .installed.cfg
 *.egg
 
-# Environment variables
-.env
-.env.local
-*.env*
-
-# IDE
-.vscode/
-.idea/
+# C/C++ specific
+*.o
+*.obj
+*.out
+*.exe
+*.dll
+*.so
+*.a
+*.dylib
+*.lib
+*.exp
+*.ilk
+*.iobj
+*.ipdb
+*.pdb
+*.res
+*.rsp
+*.tlog
+*.vspscc
+*.vssscc
+*.manifest
+*.map
+*.stackdump
+*.core
+*~
 *.swp
 *.swo
 
-# OS
-.DS_Store
-Thumbs.db
+# CMake
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile
 ```
