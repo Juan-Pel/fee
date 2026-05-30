@@ -1,0 +1,2836 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Roadtrip Chill</title>
+<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+<style>
+@import url('https://cdn.jsdelivr.net/npm/@fontsource/inter@5.0.0/latin.css');
+*{margin:0;padding:0;box-sizing:border-box}
+body{overflow:hidden;font-family:'Inter',sans-serif;background:#1a1a2e}
+
+#loadingScreen{position:fixed;inset:0;background:linear-gradient(135deg,#0f0c29,#302b63,#24243e);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:2000;transition:opacity 0.8s}
+#loadingScreen.hidden{opacity:0;pointer-events:none}
+#loadingScreen h1{font-size:3rem;color:#f0e68c;margin-bottom:1rem;text-shadow:0 0 30px rgba(240,230,140,0.5)}
+#loadingScreen p{color:#a8a8d8;font-size:1.1rem;margin-bottom:2rem}
+#loadingBar{width:300px;height:6px;background:rgba(255,255,255,0.1);border-radius:3px;overflow:hidden}
+#loadingFill{height:100%;width:0%;background:linear-gradient(90deg,#f0e68c,#ff6b6b);border-radius:3px;transition:width 0.3s}
+
+#mainMenu{position:fixed;inset:0;background:linear-gradient(135deg,#0f0c29,#302b63,#24243e);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:1000}
+#mainMenu.hidden{display:none}
+.menuTitle{font-size:3.5rem;color:#f0e68c;margin-bottom:0.5rem;text-shadow:0 0 40px rgba(240,230,140,0.4)}
+.menuSubtitle{color:#a8a8d8;font-size:1.2rem;margin-bottom:3rem}
+#mainMenu,#soloMenu,#multiplayerMenu{overflow-y:auto;padding:20px;box-sizing:border-box}
+.menuScroll{max-height:calc(100vh - 40px);overflow-y:auto;padding:20px}
+.menuBtn:disabled{opacity:0.5;cursor:not-allowed;pointer-events:none}
+input:disabled{opacity:0.5;cursor:not-allowed}
+#pauseMenu{position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:1500;display:flex;align-items:center;justify-content:center}
+#pauseMenu.hidden{display:none}
+.menuSection{margin-bottom:2rem;text-align:center}
+.menuSection label{color:#c8c8e8;font-size:0.95rem;display:block;margin-bottom:0.5rem}
+.menuBtn{padding:14px 40px;margin:8px;border:none;border-radius:12px;font-size:1.1rem;cursor:pointer;transition:all 0.3s;font-family:'Inter',sans-serif;font-weight:600}
+.btnPrimary{background:linear-gradient(135deg,#f0e68c,#e6d670);color:#1a1a2e;box-shadow:0 4px 20px rgba(240,230,140,0.3)}
+.btnPrimary:hover{transform:translateY(-2px);box-shadow:0 6px 30px rgba(240,230,140,0.5)}
+.btnSecondary{background:rgba(255,255,255,0.1);color:#c8c8e8;border:1px solid rgba(255,255,255,0.2)}
+.btnSecondary:hover{background:rgba(255,255,255,0.2)}
+.modeBtns,.playersBtns{display:flex;gap:12px;flex-wrap:wrap;justify-content:center}
+.vehiclePreview{width:200px;height:120px;margin:1rem auto;border-radius:12px;background:rgba(255,255,255,0.05);display:flex;align-items:center;justify-content:center;font-size:3rem}
+
+#hud{position:fixed;inset:0;pointer-events:none;z-index:100}
+#hud.hidden{display:none}
+.hudTop{display:flex;justify-content:space-between;padding:20px 30px}
+.hudPanel{background:rgba(15,12,41,0.75);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:12px 18px;color:#e0e0f0;min-width:140px}
+.hudPanel h4{font-size:0.7rem;color:#8888aa;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px}
+.hudPanel .value{font-size:1.3rem;font-weight:700}
+.hudLeft,.hudRight{display:flex;flex-direction:column;gap:10px}
+.hudRight{align-items:flex-end}
+.hudBottom{position:absolute;bottom:20px;left:50%;transform:translateX(-50%);display:flex;gap:12px;pointer-events:auto}
+.hudBtn{padding:10px 18px;border:1px solid rgba(255,255,255,0.15);border-radius:10px;background:rgba(15,12,41,0.75);backdrop-filter:blur(10px);color:#c8c8e8;cursor:pointer;font-size:0.85rem;font-family:'Inter',sans-serif;transition:all 0.2s}
+.hudBtn:hover{background:rgba(240,230,140,0.2);border-color:#f0e68c}
+
+#sleepinessBar{position:absolute;top:80px;left:50%;transform:translateX(-50%);width:200px;background:rgba(15,12,41,0.75);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:8px 14px}
+#sleepinessBar .label{font-size:0.7rem;color:#8888aa;text-transform:uppercase;margin-bottom:4px}
+.sleepTrack{height:6px;background:rgba(255,255,255,0.1);border-radius:3px;overflow:hidden}
+.sleepFill{height:100%;background:linear-gradient(90deg,#4ade80,#fbbf24,#ef4444);border-radius:3px;transition:width 0.5s}
+
+#motelIndicator{position:absolute;top:120px;left:50%;transform:translateX(-50%);background:rgba(15,12,41,0.75);backdrop-filter:blur(10px);border:1px solid rgba(240,230,140,0.3);border-radius:10px;padding:10px 20px;color:#f0e68c;font-size:0.95rem;display:none;white-space:nowrap}
+#motelIndicator.visible{display:block;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.6}}
+
+#eventIndicator{position:absolute;top:160px;left:50%;transform:translateX(-50%);color:#f0e68c;font-size:1rem;background:rgba(15,12,41,0.8);backdrop-filter:blur(10px);padding:10px 20px;border-radius:12px;border:1px solid rgba(240,230,140,0.3);display:none;white-space:nowrap}
+#eventIndicator.visible{display:block}
+
+#photoMode{position:fixed;inset:0;z-index:600;display:none}
+#photoMode.active{display:block}
+#photoMode::after{content:'';position:absolute;inset:30px;border:2px solid rgba(255,255,255,0.3);border-radius:4px;pointer-events:none}
+.photoUI{position:absolute;top:20px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.5);backdrop-filter:blur(10px);padding:10px 25px;border-radius:10px;color:#f0e68c;font-size:1rem}
+.photoControls{position:absolute;bottom:30px;left:50%;transform:translateX(-50%);display:flex;gap:12px;pointer-events:auto}
+.photoBtn{padding:12px 24px;border:none;border-radius:10px;font-size:1rem;cursor:pointer;font-family:'Inter',sans-serif;font-weight:600;transition:all 0.2s}
+.photoBtn.capture{background:#ef4444;color:#fff}
+.photoBtn.cancel{background:rgba(255,255,255,0.2);color:#fff}
+
+#radioPanel{position:absolute;bottom:80px;right:30px;pointer-events:auto;background:rgba(15,12,41,0.85);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,0.1);border-radius:16px;padding:20px;width:320px;color:#e0e0f0;display:none}
+#radioPanel.active{display:block}
+#radioPanel h3{color:#f0e68c;font-size:1rem;margin-bottom:10px}
+#radioInput{width:100%;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.05);color:#e0e0f0;font-family:'Inter',sans-serif;font-size:0.85rem;margin-bottom:8px;outline:none}
+#radioInput::placeholder{color:#666688}
+#radioPlayBtn{width:100%;padding:8px;border:none;border-radius:8px;background:linear-gradient(135deg,#f0e68c,#e6d670);color:#1a1a2e;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif}
+#radioStopBtn{width:100%;padding:8px;border:none;border-radius:8px;background:rgba(255,255,255,0.1);color:#c8c8e8;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;margin-top:6px;display:none}
+#radioStatus{font-size:0.8rem;color:#8888aa;margin-top:6px}
+.radioViz{height:40px;background:rgba(0,0,0,0.3);border-radius:8px;margin-top:10px;display:flex;align-items:flex-end;justify-content:center;gap:3px;padding:5px}
+.radioBar{width:4px;background:#f0e68c;border-radius:2px;transition:height 0.15s}
+
+#customModal{position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:700;display:none;align-items:center;justify-content:center}
+#customModal.active{display:flex}
+.customPanel{background:linear-gradient(135deg,#1a1a3e,#2d2d5e);border:1px solid rgba(255,255,255,0.15);border-radius:20px;padding:35px;max-width:500px;width:90%}
+.customPanel h2{color:#f0e68c;margin-bottom:20px;text-align:center}
+.colorOptions{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-bottom:20px}
+.colorOpt{width:45px;height:45px;border-radius:12px;cursor:pointer;border:3px solid transparent;transition:all 0.2s}
+.colorOpt:hover,.colorOpt.selected{border-color:#f0e68c;transform:scale(1.15)}
+.customClose{display:block;margin:20px auto 0;padding:12px 30px;border:none;border-radius:10px;background:linear-gradient(135deg,#f0e68c,#e6d670);color:#1a1a2e;font-weight:700;cursor:pointer;font-size:1rem;font-family:'Inter',sans-serif}
+
+#endScreen{position:fixed;inset:0;background:linear-gradient(135deg,#0f0c29,#302b63,#24243e);z-index:950;display:none;flex-direction:column;align-items:center;justify-content:center}
+#endScreen.active{display:flex}
+#endScreen h1{color:#f0e68c;font-size:2.5rem;margin-bottom:10px}
+.endStats{color:#b8b8d8;font-size:1.1rem;margin-bottom:30px;text-align:center;line-height:2}
+
+#notifications{position:fixed;top:20px;left:50%;transform:translateX(-50%);z-index:800;display:flex;flex-direction:column;gap:8px;pointer-events:none}
+.notification{background:rgba(15,12,41,0.85);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,0.15);border-radius:10px;padding:10px 20px;color:#e0e0f0;font-size:0.9rem;animation:slideDown 0.3s ease,fadeOut 0.5s ease 2.5s forwards}
+@keyframes slideDown{from{transform:translateY(-20px);opacity:0}to{transform:translateY(0);opacity:1}}
+@keyframes fadeOut{to{opacity:0;transform:translateY(-10px)}}
+
+.controlsHint{position:absolute;bottom:70px;left:30px;color:rgba(255,255,255,0.35);font-size:0.75rem;line-height:1.8;pointer-events:none}
+#ytPlayer{position:absolute;top:-9999px;left:-9999px;width:1px;height:1px;opacity:0;pointer-events:none}
+
+canvas{position:fixed!important;top:0!important;left:0!important;width:100vw!important;height:100vh!important;z-index:0!important;display:block!important}
+</style>
+</head>
+<body>
+
+<div id="loadingScreen">
+  <h1>🚗 Roadtrip Chill</h1>
+  <p>Preparando el viaje...</p>
+  <div id="loadingBar"><div id="loadingFill"></div></div>
+</div>
+
+<div id="mainMenu" class="hidden">
+  <div class="menuTitle">🚗 Roadtrip Chill</div>
+  <div class="menuSubtitle">Un viaje compartido, no un destino</div>
+  <div style="margin-top:2rem;display:flex;flex-direction:column;gap:15px;align-items:center">
+    <button class="menuBtn btnPrimary" style="width:300px;font-size:1.3rem;padding:18px" onclick="showSoloMenu()">🧑 Modo Solo</button>
+    <button class="menuBtn btnSecondary" style="width:300px;font-size:1.3rem;padding:18px" onclick="showMultiplayerMenu()">👥 Multijugador</button>
+  </div>
+  <div style="margin-top:3rem;color:#666;font-size:0.9rem">
+    Controles: WASD/Flechas para moverte · F para bajar/subir del auto · E para interactuar
+  </div>
+</div>
+
+<div id="soloMenu" class="hidden">
+  <div class="menuScroll">
+    <div class="menuTitle">🧑 Modo Solo</div>
+    <div class="menuSubtitle">Configurá tu viaje</div>
+    <div class="menuSection">
+      <label>Modo de juego</label>
+      <div class="modeBtns">
+        <button class="menuBtn btnSecondary" data-mode="quick" onclick="selectMode(this)">⚡ Rápido (50km)</button>
+        <button class="menuBtn btnPrimary" data-mode="medium" onclick="selectMode(this)">🌄 Medio (150km)</button>
+        <button class="menuBtn btnSecondary" data-mode="long" onclick="selectMode(this)">🌙 Largo (400km)</button>
+      </div>
+    </div>
+    <div class="menuSection">
+      <label>Jugadores en el auto</label>
+      <div class="playersBtns">
+        <button class="menuBtn btnSecondary" data-players="1" onclick="selectPlayers(this)">🧑 1</button>
+        <button class="menuBtn btnPrimary" data-players="2" onclick="selectPlayers(this)">👥 2</button>
+        <button class="menuBtn btnSecondary" data-players="4" onclick="selectPlayers(this)">👥 4</button>
+        <button class="menuBtn btnSecondary" data-players="8" onclick="selectPlayers(this)">👥×8</button>
+      </div>
+    </div>
+    <div class="vehiclePreview" id="vehiclePreview">🚙</div>
+    <div style="margin-top:1.5rem;display:flex;flex-direction:column;gap:10px;align-items:center">
+      <button class="menuBtn btnPrimary" onclick="startGame()">🛣️ Iniciar Viaje</button>
+      <button class="menuBtn btnSecondary" onclick="openCustomize()">🎨 Personalizar Auto</button>
+      <button class="menuBtn btnSecondary" onclick="backToMainMenu()">← Volver</button>
+    </div>
+  </div>
+</div>
+
+<div id="multiplayerMenu" class="hidden">
+  <div class="menuScroll">
+    <div class="menuTitle" style="font-size:2.5rem">👥 Multijugador P2P</div>
+    <div class="menuSubtitle" style="margin-bottom:1.5rem">Jugá con tus amigos online</div>
+    
+    <div class="menuSection">
+      <label style="font-size:0.85rem">Tu nombre</label>
+      <input type="text" id="playerName" placeholder="Ingresá tu nombre" maxlength="20" style="padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.1);color:#e0e0f0;font-size:0.95rem;width:250px;text-align:center">
+    </div>
+
+    <div class="menuSection" style="margin-bottom:1.5rem">
+      <label style="font-size:0.85rem">Modo de juego</label>
+      <div class="modeBtns">
+        <button class="menuBtn btnSecondary" data-mode="quick" onclick="selectMode(this)" style="padding:10px 20px;font-size:0.9rem">⚡ Rápido</button>
+        <button class="menuBtn btnPrimary" data-mode="medium" onclick="selectMode(this)" style="padding:10px 20px;font-size:0.9rem">🌄 Medio</button>
+        <button class="menuBtn btnSecondary" data-mode="long" onclick="selectMode(this)" style="padding:10px 20px;font-size:0.9rem">🌙 Largo</button>
+      </div>
+    </div>
+
+    <div class="menuSection" style="margin-bottom:1.5rem">
+      <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+        <button class="menuBtn btnPrimary" onclick="createRoom()" style="padding:12px 25px">🎮 Crear Sala</button>
+        <button class="menuBtn btnSecondary" onclick="showJoinRoom()" style="padding:12px 25px">🔗 Unirse a Sala</button>
+      </div>
+    </div>
+
+    <div id="joinRoomSection" style="display:none;margin-top:1rem;padding:15px;background:rgba(255,255,255,0.05);border-radius:10px">
+      <label style="font-size:0.85rem;display:block;margin-bottom:8px">Código de sala</label>
+      <div style="display:flex;gap:10px;justify-content:center;align-items:center">
+        <input type="text" id="roomCodeInput" placeholder="ABC123" maxlength="10" style="padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.1);color:#e0e0f0;font-size:1rem;width:150px;text-align:center;text-transform:uppercase">
+        <button class="menuBtn btnSecondary" onclick="joinRoom()" style="padding:8px 20px">Unirse</button>
+      </div>
+    </div>
+
+    <div id="roomInfo" style="display:none;margin-top:1rem">
+      <div style="background:rgba(240,230,140,0.1);border:1px solid rgba(240,230,140,0.3);border-radius:12px;padding:15px;max-width:450px;margin:0 auto">
+        <h3 style="color:#f0e68c;margin-bottom:8px;font-size:1.1rem">🎮 Sala creada</h3>
+        <p style="color:#c8c8e8;margin-bottom:8px;font-size:0.9rem">Código para compartir:</p>
+        <div id="roomCodeDisplay" style="font-size:1.8rem;font-weight:700;color:#f0e68c;letter-spacing:3px;margin-bottom:12px;background:rgba(0,0,0,0.3);padding:10px;border-radius:8px"></div>
+        <p style="color:#8888aa;font-size:0.85rem;margin-bottom:12px">Compartí este código con tus amigos</p>
+        <div id="playersList" style="color:#a8a8d8;font-size:0.9rem;margin-bottom:12px;line-height:1.6"></div>
+        <button class="menuBtn btnPrimary" onclick="startMultiplayerGame()" style="width:100%;padding:12px;font-size:1rem">🚀 Iniciar Viaje</button>
+      </div>
+    </div>
+
+    <div id="connectionStatus" style="margin-top:1rem;color:#8888aa;font-size:0.85rem;text-align:center"></div>
+
+    <div style="margin-top:1.5rem;padding-bottom:20px">
+      <button class="menuBtn btnSecondary" onclick="backToMainMenu()" style="padding:10px 25px">← Volver al Menú</button>
+    </div>
+  </div>
+</div>
+
+<div id="customModal">
+  <div class="customPanel">
+    <h2>🎨 Personalizar Vehículo</h2>
+    <label style="color:#c8c8e8;font-size:0.9rem;display:block;margin-bottom:10px">Color</label>
+    <div class="colorOptions" id="colorOptions"></div>
+    <button class="customClose" onclick="closeCustomize()">✓ Guardar</button>
+  </div>
+</div>
+
+<div id="hud" class="hidden">
+  <div class="hudTop">
+    <div class="hudLeft">
+      <div class="hudPanel"><h4>Distancia</h4><div class="value" id="distValue">0 km</div></div>
+      <div class="hudPanel"><h4>Combustible</h4><div class="value" id="fuelValue">⛽ 100%</div></div>
+      <div class="hudPanel"><h4>Dinero</h4><div class="value" id="moneyValue">💰 $500</div></div>
+    </div>
+    <div class="hudRight">
+      <div class="hudPanel" style="min-width:180px;text-align:center">
+        <h4>Velocímetro</h4>
+        <div class="value" id="speedValue" style="font-size:2.2rem;color:#f0e68c;text-shadow:0 0 15px rgba(240,230,140,0.6)">0</div>
+        <div style="font-size:0.7rem;color:#8888aa;letter-spacing:1px">km/h</div>
+        <div style="margin-top:6px;height:4px;background:rgba(255,255,255,0.1);border-radius:2px;overflow:hidden">
+          <div id="speedBar" style="height:100%;width:0%;background:linear-gradient(90deg,#4ade80,#fbbf24,#ef4444);transition:width 0.15s"></div>
+        </div>
+      </div>
+      <div class="hudPanel"><h4>Hora</h4><div class="value" id="timeValue">12:00</div></div>
+    </div>
+  </div>
+  <div id="sleepinessBar">
+    <div class="label">😴 Sueño</div>
+    <div class="sleepTrack"><div class="sleepFill" id="sleepFill" style="width:0%"></div></div>
+  </div>
+  <div id="motelIndicator">🏨 Motel cerca — recepción y habitaciones</div>
+  <div id="eventIndicator"></div>
+    <div class="controlsHint">W/S — Acelerar/Caminar · A/D — Girar · ESPACIO — Freno de mano · F — Bajar/Subir · SHIFT — Correr · E — Interactuar (gasolina, motel, empujar auto) · C — Cámara · P — Foto · R — Radio</div>
+  <div class="hudBottom">
+    <button class="hudBtn" onclick="toggleRadio()">📻 Radio</button>
+    <button class="hudBtn" onclick="enterPhotoMode()">📷 Foto</button>
+    <button class="hudBtn" onclick="openCustomize()">🎨 Custom</button>
+    <button class="hudBtn" onclick="switchDriver()">🔄 Conductor</button>
+    <button class="hudBtn" onclick="toggleVehicle()">🚶 Bajar/Subir</button>
+    <button class="hudBtn" onclick="findNearestMotel()">🏨 Buscar Motel</button>
+    <button class="hudBtn" onclick="findNearestGasStation()">⛽ Buscar Gas</button>
+  </div>
+  <div id="radioPanel">
+    <h3>📻 Radio del Viaje</h3>
+    <input type="text" id="radioInput" placeholder="Link de YouTube (ej: https://youtu.be/xxx)">
+    <button id="radioPlayBtn" onclick="playRadioLink()">▶ Reproducir</button>
+    <button id="radioStopBtn" onclick="stopRadio()">⏹ Detener</button>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">
+      <button class="hudBtn" style="font-size:0.7rem;padding:5px 10px;pointer-events:auto" onclick="setRadioPreset('jfKfPfyJRdk')">🎵 Lofi Hip Hop</button>
+      <button class="hudBtn" style="font-size:0.7rem;padding:5px 10px;pointer-events:auto" onclick="setRadioPreset('36YnV9STBqc')">🎸 Rock</button>
+      <button class="hudBtn" style="font-size:0.7rem;padding:5px 10px;pointer-events:auto" onclick="setRadioPreset('HQnC1UHBvWA')">🎹 Jazz</button>
+      <button class="hudBtn" style="font-size:0.7rem;padding:5px 10px;pointer-events:auto" onclick="setRadioPreset('5qap5aO4i9A')">🌊 Chill</button>
+    </div>
+    <div id="radioStatus">Pegá un link o elegí una estación</div>
+    <div class="radioViz" id="radioViz"></div>
+  </div>
+</div>
+
+<div id="photoMode">
+  <div class="photoUI">📷 Modo Foto</div>
+  <div class="photoControls">
+    <button class="photoBtn capture" onclick="takePhoto()">📸 Capturar</button>
+    <button class="photoBtn cancel" onclick="exitPhotoMode()">✖ Salir</button>
+  </div>
+</div>
+
+<div id="pauseMenu" class="hidden">
+  <div style="background:rgba(15,12,41,0.95);border:2px solid rgba(240,230,140,0.4);border-radius:20px;padding:40px;max-width:400px;text-align:center">
+    <h2 style="color:#f0e68c;font-size:2rem;margin-bottom:2rem">⏸️ PAUSA</h2>
+    <div style="display:flex;flex-direction:column;gap:15px">
+      <button class="menuBtn btnPrimary" onclick="resumeGame()">▶️ Continuar</button>
+      <button class="menuBtn btnSecondary" onclick="exitToMainMenu()">🏠 Salir al Menú Principal</button>
+    </div>
+  </div>
+</div>
+
+<div id="endScreen">
+  <h1>🌅 ¡Viaje Completado!</h1>
+  <div class="endStats" id="endStats"></div>
+  <button class="menuBtn btnPrimary" onclick="backToMenu()">🏠 Volver al Menú</button>
+</div>
+
+<div id="notifications"></div>
+<div id="ytPlayer"></div>
+
+<!-- Using Three.js r128 from jsdelivr CDN -->
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+<!-- PeerJS for P2P multiplayer -->
+<script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+<script>
+(function(){
+  "use strict";
+
+  // Helper: apply position without breaking Three.js internal refs
+  function setPos(obj, x, y, z) {
+    obj.position.set(x, y, z);
+    return obj;
+  }
+
+  var G = {
+    mode:'medium', players:2, vehicleColor:'#4a90d9',
+    running:false, photoMode:false,
+    speed:0, maxSpeed:80, distance:0, targetDistance:150,
+    fuel:100, money:500, sleepiness:0, gameTime:720,
+    cameraMode:0, weather:'clear', weatherTimer:0,
+    driverIdx:0, photosTaken:0, eventsCompleted:0,
+    lastEventTime:0, nextEventTime:0,
+    currentEventVisual:null,
+    heading:0, steerAngle:0,
+    vehicle:null, vehicleBody:null, cabinBottom:0, wheels:[],
+    vw:2.2, vh:0.8, vl:4.5, cw:1.8, ch:0.9, cl:2.4,
+    scene:null, camera:null, renderer:null, clock:null,
+    ground:null, decorPool:[],
+    rainParticles:null, starField:null, skyMesh:null,
+    dirLight:null, sunMesh:null, moonMesh:null,
+    motels:[], nearestMotelIdx:-1, atMotel:false, motelCooldown:0,
+    activeMotelIdx:-1, collisionCooldown:0, cameraShake:0,
+    gasStations:[], pushingCar:false,
+    otherCars:[],
+    onFoot:false, character:null, charHeading:0, charBobTime:0, interiorGroup:null,
+    keys:{}, radioActive:false, ytPlayer:null, ytReady:false,
+    ytApiLoaded: false,
+    paused:false
+  };
+
+  // === MULTIJUGADOR P2P ===
+  var MP = {
+    enabled: false,
+    isHost: false,
+    peer: null,
+    roomCode: '',
+    hostConnection: null,
+    clientConnections: [],
+    remotePlayers: {},
+    remoteCars: {},
+    remoteCharacters: {}, // personajes 3D de jugadores remotos (a pie)
+    hostCarMesh: null, // auto del host visible para los clientes
+    myName: 'Jugador',
+    myId: '',
+    syncTimer: 0,
+    connected: false,
+    inHostCar: false // cliente está "subido" al auto del host
+  };
+
+  var COLORS = ['#4a90d9','#e74c3c','#2ecc71','#f39c12','#9b59b6','#1abc9c','#e67e22','#3498db','#e91e63','#00bcd4'];
+  var VISUAL_EVENTS = [
+    {type:'deer',msg:'🦌 ¡Ciervo cruzando!',impact:{sleep:3},result:'Frenaste para el ciervo',dur:8},
+    {type:'bird',msg:'🦅 ¡Mirá arriba!',impact:{sleep:-2},result:'¡Qué vista!',dur:6},
+    {type:'rainbow',msg:'🌈 ¡Arcoíris!',impact:{sleep:-5},result:'Arcoíris a la vista',dur:10},
+    {type:'stalled',msg:'🚗 Auto averiado',impact:{sleep:3},result:'Esquivaste el auto',dur:12},
+    {type:'scenic',msg:'🏔️ Vista panorámica',impact:{sleep:-8},result:'Qué hermoso paisaje...',dur:15}
+  ];
+
+  // --- Helper: darken a hex color ---
+  function darkenColor(hex, factor) {
+    var r = parseInt(hex.slice(1,3), 16);
+    var g = parseInt(hex.slice(3,5), 16);
+    var b = parseInt(hex.slice(5,7), 16);
+    r = Math.floor(r * factor);
+    g = Math.floor(g * factor);
+    b = Math.floor(b * factor);
+    return '#' + [r,g,b].map(function(v){ return v.toString(16).padStart(2,'0'); }).join('');
+  }
+
+  window.selectMode=function(btn){
+    var btns=document.querySelectorAll('[data-mode]');
+    for(var i=0;i<btns.length;i++) btns[i].className='menuBtn btnSecondary';
+    btn.className='menuBtn btnPrimary';G.mode=btn.dataset.mode;
+  };
+
+  window.selectPlayers=function(btn){
+    var btns=document.querySelectorAll('[data-players]');
+    for(var i=0;i<btns.length;i++) btns[i].className='menuBtn btnSecondary';
+    btn.className='menuBtn btnPrimary';G.players=parseInt(btn.dataset.players);
+    var icons={1:'🚗',2:'🚙',4:'🚐',8:'🚌'};
+    document.getElementById('vehiclePreview').textContent=icons[G.players]||'🚗';
+    if(G.players>=4&&G.players<=6){G.vw=2.4;G.vh=1.0;G.vl=5.2;G.cw=2.0;G.ch=1.1;G.cl=3.0}
+    else if(G.players>=7){G.vw=2.6;G.vh=1.3;G.vl=6.2;G.cw=2.2;G.ch=1.2;G.cl=3.8}
+    else{G.vw=2.2;G.vh=0.8;G.vl=4.5;G.cw=1.8;G.ch=0.9;G.cl=2.4}
+  };
+
+  window.openCustomize=function(){
+    document.getElementById('customModal').classList.add('active');
+    var cont=document.getElementById('colorOptions');cont.innerHTML='';
+    for(var i=0;i<COLORS.length;i++){
+      (function(c){
+        var d=document.createElement('div');
+        d.className='colorOpt'+(G.vehicleColor===c?' selected':'');d.style.background=c;
+        d.onclick=function(){
+          G.vehicleColor=c;
+          var all=document.querySelectorAll('.colorOpt');
+          for(var j=0;j<all.length;j++) all[j].classList.remove('selected');
+          d.classList.add('selected');
+          if(G.vehicleBody) G.vehicleBody.material.color.set(c);
+        };
+        cont.appendChild(d);
+      })(COLORS[i]);
+    }
+  };
+  window.closeCustomize=function(){document.getElementById('customModal').classList.remove('active')};
+
+  function getRoadCurve(z){return Math.sin(z*0.003)*30+Math.sin(z*0.007)*15+Math.sin(z*0.001)*10}
+
+  function initThree(){
+    // Remove any existing canvas
+    var existingCanvas=document.querySelector('canvas');
+    if(existingCanvas) existingCanvas.remove();
+
+    G.scene=new THREE.Scene();
+    G.scene.background=new THREE.Color(0x87CEEB);
+    G.scene.fog=new THREE.Fog(0x87CEEB,100,400);
+
+    G.camera=new THREE.PerspectiveCamera(65,window.innerWidth/window.innerHeight,0.1,3000);
+    G.camera.position.set(0,6,16);
+
+    G.renderer=new THREE.WebGLRenderer({antialias:true,alpha:false});
+    G.renderer.setSize(window.innerWidth,window.innerHeight);
+    G.renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+    G.renderer.shadowMap.enabled=true;
+    G.renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+    G.renderer.setClearColor(0x87CEEB);
+    G.renderer.domElement.style.cssText='position:fixed!important;top:0!important;left:0!important;width:100vw!important;height:100vh!important;z-index:0!important;display:block!important';
+    document.body.appendChild(G.renderer.domElement);
+
+    G.clock=new THREE.Clock();
+
+    window.addEventListener('resize',function(){
+      G.camera.aspect=window.innerWidth/window.innerHeight;
+      G.camera.updateProjectionMatrix();
+      G.renderer.setSize(window.innerWidth,window.innerHeight);
+    });
+  }
+
+  function buildWorld(){
+    var skyGeo=new THREE.SphereGeometry(1200,16,16);
+    var skyMat=new THREE.MeshBasicMaterial({color:0x87CEEB,side:THREE.BackSide});
+    G.skyMesh=new THREE.Mesh(skyGeo,skyMat);
+    G.scene.add(G.skyMesh);
+
+    G.sunMesh=new THREE.Mesh(new THREE.SphereGeometry(25,16,16),new THREE.MeshBasicMaterial({color:0xffdd44}));
+    G.sunMesh.position.set(300,200,-400);
+    G.scene.add(G.sunMesh);
+
+    G.moonMesh=new THREE.Mesh(new THREE.SphereGeometry(15,16,16),new THREE.MeshBasicMaterial({color:0xeeeeff}));
+    G.moonMesh.position.set(-300,200,-400);
+    G.scene.add(G.moonMesh);
+
+    var sg=new THREE.BufferGeometry();
+    var sp=[];
+    for(var i=0;i<3000;i++){
+      var theta=Math.random()*Math.PI*2,phi=Math.random()*Math.PI,r=1100;
+      sp.push(r*Math.sin(phi)*Math.cos(theta),r*Math.cos(phi),r*Math.sin(phi)*Math.sin(theta));
+    }
+    sg.setAttribute('position',new THREE.Float32BufferAttribute(sp,3));
+    G.starField=new THREE.Points(sg,new THREE.PointsMaterial({color:0xffffff,size:2,transparent:true,opacity:0}));
+    G.scene.add(G.starField);
+
+    G.ground=new THREE.Mesh(
+      new THREE.PlaneGeometry(8000,8000),
+      new THREE.MeshLambertMaterial({color:0x4a8c3f,side:THREE.DoubleSide})
+    );
+    G.ground.rotation.x=-Math.PI/2;
+    G.ground.position.y=-0.55;
+    G.ground.receiveShadow=true;
+    G.scene.add(G.ground);
+
+    G.scene.add(new THREE.AmbientLight(0xffffff,0.7));
+    G.dirLight=new THREE.DirectionalLight(0xffffff,1.2);
+    G.dirLight.position.set(100,150,100);
+    G.dirLight.castShadow=true;
+    G.dirLight.shadow.mapSize.set(2048,2048);
+    var sc=G.dirLight.shadow.camera;
+    sc.near=1;sc.far=600;sc.left=-100;sc.right=100;sc.top=100;sc.bottom=-100;
+    G.scene.add(G.dirLight);
+
+    var rg=new THREE.BufferGeometry();
+    var rp=[];
+    for(var j=0;j<15000;j++) rp.push((Math.random()-0.5)*400,Math.random()*120,(Math.random()-0.5)*400);
+    rg.setAttribute('position',new THREE.Float32BufferAttribute(rp,3));
+    G.rainParticles=new THREE.Points(rg,new THREE.PointsMaterial({color:0xaabbcc,size:0.3,transparent:true,opacity:0}));
+    G.scene.add(G.rainParticles);
+  }
+
+  function makeTree(){
+    var g=new THREE.Group();
+    var t=new THREE.Mesh(new THREE.CylinderGeometry(0.2,0.4,3,6),new THREE.MeshLambertMaterial({color:0x6B4226}));
+    setPos(t, 0, 1.5, 0);
+    g.add(t);
+    [3,4.2,5.2].forEach(function(y,idx){
+      var s=2.5-idx*0.6;
+      var f=new THREE.Mesh(new THREE.ConeGeometry(s,2.2,7),new THREE.MeshLambertMaterial({color:new THREE.Color(0.1+idx*0.05,0.5+idx*0.05,0.1)}));
+      setPos(f, 0, y, 0);
+      g.add(f);
+    });
+    return g;
+  }
+
+  function makeBush(){
+    var g=new THREE.Group();
+    for(var i=0;i<3;i++){
+      var b=new THREE.Mesh(new THREE.SphereGeometry(0.6,6,5),new THREE.MeshLambertMaterial({color:0x2d7a2d}));
+      setPos(b, (Math.random()-0.5), 0.5, (Math.random()-0.5));
+      g.add(b);
+    }
+    return g;
+  }
+
+  function makeRock(){
+    var r=new THREE.Mesh(new THREE.DodecahedronGeometry(0.8,0),new THREE.MeshLambertMaterial({color:0x888899}));
+    setPos(r, 0, 0.4, 0);
+    r.rotation.y=Math.random()*Math.PI;
+    return r;
+  }
+
+  function makeFlowers(){
+    var g=new THREE.Group();
+    var fc=[0xff6b9d,0xffd93d,0x6bcb77,0x4d96ff,0xff922b];
+    for(var i=0;i<8;i++){
+      var stem = new THREE.Mesh(new THREE.CylinderGeometry(0.02,0.02,0.6,3),new THREE.MeshLambertMaterial({color:0x2d8a4e}));
+      setPos(stem, (Math.random()-0.5)*2.5, 0.3, (Math.random()-0.5)*2.5);
+      g.add(stem);
+      var bloom = new THREE.Mesh(new THREE.SphereGeometry(0.15,5,4),new THREE.MeshLambertMaterial({color:fc[Math.floor(Math.random()*fc.length)]}));
+      setPos(bloom, (Math.random()-0.5)*2.5, 0.65, (Math.random()-0.5)*2.5);
+      g.add(bloom);
+    }
+    return g;
+  }
+
+  function generateChunk(startZ){
+    var cs=80,segLen=4,numSeg=cs/segLen;
+    var chunk=new THREE.Group();
+
+    for(var i=0;i<numSeg;i++){
+      var z=startZ-i*segLen;
+      var curve=getRoadCurve(z);
+
+      var seg=new THREE.Mesh(new THREE.PlaneGeometry(14,segLen+0.5),new THREE.MeshLambertMaterial({color:0x555566}));
+      seg.rotation.x=-Math.PI/2;setPos(seg, curve, 0.08, z);seg.receiveShadow=true;
+      chunk.add(seg);
+
+      if(Math.floor(Math.abs(z)/4)%2===0){
+        var dash=new THREE.Mesh(new THREE.PlaneGeometry(0.3,segLen*0.5),new THREE.MeshBasicMaterial({color:0xffee44}));
+        dash.rotation.x=-Math.PI/2;setPos(dash, curve, 0.11, z);chunk.add(dash);
+      }
+
+      [-6.5,6.5].forEach(function(ox){
+        var edge=new THREE.Mesh(new THREE.BoxGeometry(0.2,0.12,segLen),new THREE.MeshLambertMaterial({color:0xeeeeee}));
+        setPos(edge, curve+ox, 0.12, z);chunk.add(edge);
+      });
+
+      [-10,-7.5,7.5,10].forEach(function(ox){
+        var shoulder=new THREE.Mesh(new THREE.PlaneGeometry(2.5,segLen),new THREE.MeshLambertMaterial({color:0x7a6a52,side:THREE.DoubleSide}));
+        shoulder.rotation.x=-Math.PI/2;setPos(shoulder, curve+ox, 0.06, z);chunk.add(shoulder);
+      });
+    }
+
+    for(var d=0;d<10;d++){
+      var dz=startZ-Math.random()*cs;
+      var dcurve=getRoadCurve(dz);
+      var dside=Math.random()>0.5?1:-1;
+      var dx=dcurve+dside*(18+Math.random()*60);
+      var dtype=Math.random();
+      var dmesh;
+      if(dtype<0.4) dmesh=makeTree();
+      else if(dtype<0.6) dmesh=makeBush();
+      else if(dtype<0.75) dmesh=makeRock();
+      else dmesh=makeFlowers();
+
+      if(dmesh){
+        setPos(dmesh, dx, 0, dz);
+        dmesh.scale.setScalar(0.8+Math.random()*0.7);
+        chunk.add(dmesh);
+      }
+    }
+
+    for(var m=0;m<3;m++){
+      var mz=startZ-Math.random()*cs;
+      var mside=Math.random()>0.5?1:-1;
+      var mx=mside*(90+Math.random()*80);
+      var mGeo=new THREE.ConeGeometry(20+Math.random()*25,40+Math.random()*50,6);
+      var shade=0.2+Math.random()*0.2;
+      var mountain=new THREE.Mesh(mGeo,new THREE.MeshLambertMaterial({color:new THREE.Color(shade*0.8,shade*0.9,shade)}));
+      setPos(mountain, mx, -5, mz);
+      chunk.add(mountain);
+
+      var cap=new THREE.Mesh(new THREE.ConeGeometry(6,10,6),new THREE.MeshBasicMaterial({color:0xeeeeff}));
+      setPos(cap, 0, 25, 0);
+      mountain.add(cap);
+    }
+
+    G.scene.add(chunk);
+    G.decorPool.push({mesh:chunk,zStart:startZ,zEnd:startZ-cs});
+  }
+
+  function createVehicle(){
+    G.vehicle=new THREE.Group();
+
+    var bodyGeo=new THREE.BoxGeometry(G.vw,G.vh,G.vl);
+    G.vehicleBody=new THREE.Mesh(bodyGeo,new THREE.MeshLambertMaterial({color:G.vehicleColor}));
+    setPos(G.vehicleBody, 0, G.vh/2+0.3, 0);
+    G.vehicleBody.castShadow=true;
+    G.vehicle.add(G.vehicleBody);
+
+    G.cabinBottom=G.vh+0.3;
+    var cabin=new THREE.Mesh(new THREE.BoxGeometry(G.cw,G.ch,G.cl),new THREE.MeshLambertMaterial({color:darkenColor(G.vehicleColor,0.8)}));
+    setPos(cabin, 0, G.cabinBottom+G.ch/2, -0.3);
+    cabin.castShadow=true;
+    G.vehicle.add(cabin);
+
+    var wsGeo=new THREE.PlaneGeometry(G.cw*0.8,G.ch*0.7);
+    var wsMat=new THREE.MeshBasicMaterial({color:0x99ccdd,transparent:true,opacity:0.5,side:THREE.DoubleSide});
+    var ws=new THREE.Mesh(wsGeo,wsMat);
+    setPos(ws, 0, G.cabinBottom+G.ch*0.4, G.cl/2-0.1);
+    ws.rotation.x=-0.15;
+    G.vehicle.add(ws);
+    var rw=new THREE.Mesh(wsGeo,wsMat);
+    setPos(rw, 0, G.cabinBottom+G.ch*0.4, -G.cl/2+0.1);
+    rw.rotation.x=0.15;
+    G.vehicle.add(rw);
+    [1,-1].forEach(function(side){
+      var sw=new THREE.Mesh(new THREE.PlaneGeometry(G.cl*0.75,G.ch*0.6),wsMat);
+      setPos(sw, side*(G.cw/2+0.01), G.cabinBottom+G.ch*0.4, 0);
+      sw.rotation.y=side*Math.PI/2;G.vehicle.add(sw);
+    });
+
+    var wGeo=new THREE.CylinderGeometry(0.38,0.38,0.35,10);
+    var wMat=new THREE.MeshLambertMaterial({color:0x222222});
+    G.wheels=[];
+    [[G.vw/2+0.15,0.38,G.vl/3],[-G.vw/2-0.15,0.38,G.vl/3],[G.vw/2+0.15,0.38,-G.vl/3],[-G.vw/2-0.15,0.38,-G.vl/3]].forEach(function(p){
+      var w=new THREE.Mesh(wGeo,wMat);w.rotation.z=Math.PI/2;
+      setPos(w, p[0], p[1], p[2]);
+      G.vehicle.add(w);G.wheels.push(w);
+    });
+
+    var hlGeo=new THREE.SphereGeometry(0.15,6,6);
+    [-0.6,0.6].forEach(function(x){
+      var hl = new THREE.Mesh(hlGeo,new THREE.MeshBasicMaterial({color:0xffffaa}));
+      setPos(hl, x, G.vh*0.6+0.2, G.vl/2+0.05);
+      G.vehicle.add(hl);
+    });
+    [-0.6,0.6].forEach(function(x){
+      var tl = new THREE.Mesh(hlGeo,new THREE.MeshBasicMaterial({color:0xff3333}));
+      setPos(tl, x, G.vh*0.6+0.2, -G.vl/2-0.05);
+      G.vehicle.add(tl);
+    });
+
+    // === INTERIOR (visible en primera persona) ===
+    G.interiorGroup = new THREE.Group();
+    var interiorMat = new THREE.MeshLambertMaterial({color:0x2a2a2a});
+    var seatMat = new THREE.MeshLambertMaterial({color:0x3a2a1a});
+    var chromeMat = new THREE.MeshLambertMaterial({color:0xaaaaaa});
+
+    // === Coordenadas en espacio del vehículo ===
+    // Parabrisas delantero está aprox en z = 0.5
+    // Centro de la cabina aprox en z = -0.3
+    // Parte trasera de la cabina aprox en z = -1.1
+    var dashZ = 0.35;      // Salpicadero (delante del conductor)
+    var wheelZ = 0.15;     // Volante (al alcance del conductor)
+    var mirrorZ = 0.42;    // Espejo retrovisor (cerca del parabrisas, arriba)
+    var frontSeatZ = -0.15; // Asientos delanteros
+    var rearSeatZ = -0.85;  // Asientos traseros
+
+    // Salpicadero (dashboard) - caja ancha
+    var dash = new THREE.Mesh(new THREE.BoxGeometry(G.cw*0.9, 0.38, 0.4), interiorMat);
+    setPos(dash, 0, G.cabinBottom + 0.19, dashZ);
+    G.interiorGroup.add(dash);
+
+    // Panel de instrumentos (frente al conductor)
+    var instrPanel = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.18, 0.05), new THREE.MeshBasicMaterial({color:0x111122}));
+    setPos(instrPanel, 0.35, G.cabinBottom + 0.34, dashZ - 0.18);
+    G.interiorGroup.add(instrPanel);
+    // "Luces" del panel (indicadores)
+    var glowL = new THREE.Mesh(new THREE.SphereGeometry(0.03, 6, 6), new THREE.MeshBasicMaterial({color:0x44ff66}));
+    setPos(glowL, 0.27, G.cabinBottom + 0.37, dashZ - 0.21);
+    G.interiorGroup.add(glowL);
+    var glowR = new THREE.Mesh(new THREE.SphereGeometry(0.03, 6, 6), new THREE.MeshBasicMaterial({color:0xff8844}));
+    setPos(glowR, 0.43, G.cabinBottom + 0.37, dashZ - 0.21);
+    G.interiorGroup.add(glowR);
+    var glowM = new THREE.Mesh(new THREE.SphereGeometry(0.025, 6, 6), new THREE.MeshBasicMaterial({color:0x4488ff}));
+    setPos(glowM, 0.35, G.cabinBottom + 0.3, dashZ - 0.21);
+    G.interiorGroup.add(glowM);
+
+    // Volante (torus inclinado hacia el conductor)
+    var steering = new THREE.Mesh(new THREE.TorusGeometry(0.17, 0.025, 8, 20), new THREE.MeshLambertMaterial({color:0x1a1a1a}));
+    setPos(steering, 0.35, G.cabinBottom + 0.48, wheelZ);
+    steering.rotation.x = 0.5;
+    G.interiorGroup.add(steering);
+    // Columna del volante
+    var steerCol = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.022, 0.3, 6), interiorMat);
+    setPos(steerCol, 0.35, G.cabinBottom + 0.36, wheelZ + 0.1);
+    steerCol.rotation.x = -0.5;
+    G.interiorGroup.add(steerCol);
+    // Radios del volante
+    for(var r = 0; r < 3; r++){
+      var spoke = new THREE.Mesh(new THREE.BoxGeometry(0.025, 0.025, 0.16), new THREE.MeshLambertMaterial({color:0x1a1a1a}));
+      setPos(spoke, 0.35, G.cabinBottom + 0.48, wheelZ);
+      spoke.rotation.x = 0.5;
+      spoke.rotation.z = r * Math.PI * 2 / 3;
+      G.interiorGroup.add(spoke);
+    }
+
+    // Asientos delanteros (conductor + acompañante)
+    function makeSeat(x, z){
+      var seat = new THREE.Group();
+      var base = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.12, 0.5), seatMat);
+      setPos(base, 0, 0.06, 0);
+      seat.add(base);
+      var back = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.55, 0.12), seatMat);
+      setPos(back, 0, 0.39, -0.22);
+      seat.add(back);
+      var head = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.2, 0.1), seatMat);
+      setPos(head, 0, 0.77, -0.22);
+      seat.add(head);
+      setPos(seat, x, G.cabinBottom, z);
+      return seat;
+    }
+    G.interiorGroup.add(makeSeat(0.35, frontSeatZ));   // Conductor
+    G.interiorGroup.add(makeSeat(-0.35, frontSeatZ));  // Acompañante
+
+    // Asientos traseros (banco)
+    var rearBase = new THREE.Mesh(new THREE.BoxGeometry(G.cw*0.88, 0.12, 0.45), seatMat);
+    setPos(rearBase, 0, G.cabinBottom + 0.06, rearSeatZ);
+    G.interiorGroup.add(rearBase);
+    var rearBack = new THREE.Mesh(new THREE.BoxGeometry(G.cw*0.88, 0.5, 0.12), seatMat);
+    setPos(rearBack, 0, G.cabinBottom + 0.37, rearSeatZ - 0.17);
+    G.interiorGroup.add(rearBack);
+
+    // Espejo retrovisor
+    var mirror = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.08, 0.06), chromeMat);
+    setPos(mirror, 0, G.cabinBottom + G.ch*0.9, mirrorZ);
+    G.interiorGroup.add(mirror);
+    var mirrorStick = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 0.18, 6), interiorMat);
+    setPos(mirrorStick, 0, G.cabinBottom + G.ch*0.98, mirrorZ);
+    G.interiorGroup.add(mirrorStick);
+
+    // Piso interior (alfombra)
+    var floor = new THREE.Mesh(new THREE.BoxGeometry(G.cw*0.88, 0.03, G.cl*0.9), new THREE.MeshLambertMaterial({color:0x1a1010}));
+    setPos(floor, 0, G.cabinBottom - 0.02, -0.3);
+    G.interiorGroup.add(floor);
+
+    // Techo interior (tapizado)
+    var roof = new THREE.Mesh(new THREE.BoxGeometry(G.cw*0.85, 0.04, G.cl*0.9), new THREE.MeshLambertMaterial({color:0x3a3a3a}));
+    setPos(roof, 0, G.cabinBottom + G.ch - 0.04, -0.3);
+    G.interiorGroup.add(roof);
+
+    G.vehicle.add(G.interiorGroup);
+
+    G.vehicle.position.set(0,0,0);
+    G.scene.add(G.vehicle);
+  }
+
+  function createCharacter(){
+    var c = new THREE.Group();
+    var skinMat = new THREE.MeshLambertMaterial({color:0xe0a878});
+    var shirtMat = new THREE.MeshLambertMaterial({color:0x4477cc});
+    var pantsMat = new THREE.MeshLambertMaterial({color:0x333344});
+    var hairMat = new THREE.MeshLambertMaterial({color:0x3a2818});
+    var shoeMat = new THREE.MeshLambertMaterial({color:0x222222});
+
+    // Piernas (con grupos para animar)
+    var legL = new THREE.Group();
+    var legLMesh = new THREE.Mesh(new THREE.BoxGeometry(0.16,0.5,0.16), pantsMat);
+    setPos(legLMesh, 0, -0.25, 0);
+    legL.add(legLMesh);
+    var shoeL = new THREE.Mesh(new THREE.BoxGeometry(0.17,0.1,0.28), shoeMat);
+    setPos(shoeL, 0, -0.52, 0.05);
+    legL.add(shoeL);
+    setPos(legL, 0.1, 0.5, 0);
+    c.add(legL);
+
+    var legR = new THREE.Group();
+    var legRMesh = new THREE.Mesh(new THREE.BoxGeometry(0.16,0.5,0.16), pantsMat);
+    setPos(legRMesh, 0, -0.25, 0);
+    legR.add(legRMesh);
+    var shoeR = new THREE.Mesh(new THREE.BoxGeometry(0.17,0.1,0.28), shoeMat);
+    setPos(shoeR, 0, -0.52, 0.05);
+    legR.add(shoeR);
+    setPos(legR, -0.1, 0.5, 0);
+    c.add(legR);
+
+    // Torso
+    var torso = new THREE.Mesh(new THREE.BoxGeometry(0.4,0.5,0.22), shirtMat);
+    setPos(torso, 0, 0.78, 0);
+    c.add(torso);
+
+    // Brazos (con grupos para animar)
+    var armL = new THREE.Group();
+    var armLMesh = new THREE.Mesh(new THREE.BoxGeometry(0.12,0.45,0.12), shirtMat);
+    setPos(armLMesh, 0, -0.22, 0);
+    armL.add(armLMesh);
+    var handL = new THREE.Mesh(new THREE.BoxGeometry(0.1,0.1,0.1), skinMat);
+    setPos(handL, 0, -0.48, 0);
+    armL.add(handL);
+    setPos(armL, 0.26, 0.95, 0);
+    c.add(armL);
+
+    var armR = new THREE.Group();
+    var armRMesh = new THREE.Mesh(new THREE.BoxGeometry(0.12,0.45,0.12), shirtMat);
+    setPos(armRMesh, 0, -0.22, 0);
+    armR.add(armRMesh);
+    var handR = new THREE.Mesh(new THREE.BoxGeometry(0.1,0.1,0.1), skinMat);
+    setPos(handR, 0, -0.48, 0);
+    armR.add(handR);
+    setPos(armR, -0.26, 0.95, 0);
+    c.add(armR);
+
+    // Cabeza
+    var head = new THREE.Mesh(new THREE.BoxGeometry(0.26,0.26,0.26), skinMat);
+    setPos(head, 0, 1.18, 0);
+    c.add(head);
+    // Pelo
+    var hair = new THREE.Mesh(new THREE.BoxGeometry(0.28,0.12,0.28), hairMat);
+    setPos(hair, 0, 1.3, 0);
+    c.add(hair);
+
+    c.userData = {legL:legL, legR:legR, armL:armL, armR:armR};
+    c.castShadow = true;
+    c.visible = false;
+    G.scene.add(c);
+    G.character = c;
+  }
+
+  function placeMotels(){
+    G.motels=[];
+    var spots;
+    if(G.mode==='quick') spots=[15,35];
+    else if(G.mode==='long') spots=[30,70,120,170,230,290,350];
+    else spots=[20,50,85,120];
+
+    for(var i=0;i<spots.length;i++){
+      var z=-spots[i]*60;
+      var rc=getRoadCurve(z);
+      var side=i%2===0?1:-1;
+      var mx=rc+side*28;
+
+      var motel=new THREE.Group();
+      var wallMat=new THREE.MeshLambertMaterial({color:0xd8b071});
+      var roofMat=new THREE.MeshLambertMaterial({color:0x74381d});
+      var floorMat=new THREE.MeshLambertMaterial({color:0x3d3d48});
+      var warmMat=new THREE.MeshBasicMaterial({color:0xffc56b});
+      var bedMat=new THREE.MeshLambertMaterial({color:0xf2f0dc});
+      var blanketMat=new THREE.MeshLambertMaterial({color:0x5d7fc7});
+      var deskMat=new THREE.MeshLambertMaterial({color:0x5a341e});
+
+      // Parking más grande y camino hasta recepción.
+      var park=new THREE.Mesh(new THREE.PlaneGeometry(32,24),floorMat);
+      park.rotation.x=-Math.PI/2;setPos(park, 0, 0.015, 12);motel.add(park);
+      var path=new THREE.Mesh(new THREE.PlaneGeometry(5,18),new THREE.MeshLambertMaterial({color:0x786f63}));
+      path.rotation.x=-Math.PI/2;setPos(path, 0, 0.03, 3);motel.add(path);
+
+      // Lobby abierto: piso, paredes y techo alto para entrar caminando.
+      var lobbyFloor=new THREE.Mesh(new THREE.BoxGeometry(20,0.12,12),new THREE.MeshLambertMaterial({color:0x6f6253}));
+      setPos(lobbyFloor,0,0.06,0);motel.add(lobbyFloor);
+      var backWall=new THREE.Mesh(new THREE.BoxGeometry(20,4.2,0.3),wallMat);
+      setPos(backWall,0,2.1,-5.9);motel.add(backWall);
+      var leftWall=new THREE.Mesh(new THREE.BoxGeometry(0.3,4.2,12),wallMat);
+      setPos(leftWall,-10,2.1,0);motel.add(leftWall);
+      var rightWall=new THREE.Mesh(new THREE.BoxGeometry(0.3,4.2,12),wallMat);
+      setPos(rightWall,10,2.1,0);motel.add(rightWall);
+      var roof=new THREE.Mesh(new THREE.BoxGeometry(21,0.45,13),roofMat);
+      setPos(roof,0,4.45,0);motel.add(roof);
+
+      // Cartel grande exterior.
+      var sign=new THREE.Mesh(new THREE.BoxGeometry(10,2.2,0.4),new THREE.MeshBasicMaterial({color:0xff3d3d}));
+      setPos(sign,0,6.2,6.2);motel.add(sign);
+      var txt=new THREE.Mesh(new THREE.BoxGeometry(7,0.65,0.12),new THREE.MeshBasicMaterial({color:0xffffff}));
+      setPos(txt,0,6.2,6.45);motel.add(txt);
+      var glow=new THREE.Mesh(new THREE.SphereGeometry(0.45,8,8),new THREE.MeshBasicMaterial({color:0xff8844}));
+      setPos(glow,6.2,5.2,5.8);motel.add(glow);
+
+      // Recepción: escritorio, recepcionista, señal y luz.
+      var receptionDesk=new THREE.Mesh(new THREE.BoxGeometry(6,1,1.3),deskMat);
+      setPos(receptionDesk,0,0.55,2.2);motel.add(receptionDesk);
+      var clerkBody=new THREE.Mesh(new THREE.BoxGeometry(0.55,0.75,0.28),new THREE.MeshLambertMaterial({color:0x355c7d}));
+      setPos(clerkBody,0,1.25,1.45);motel.add(clerkBody);
+      var clerkHead=new THREE.Mesh(new THREE.SphereGeometry(0.24,8,8),new THREE.MeshLambertMaterial({color:0xe0a878}));
+      setPos(clerkHead,0,1.82,1.45);motel.add(clerkHead);
+      var receptionSign=new THREE.Mesh(new THREE.BoxGeometry(4,0.45,0.12),new THREE.MeshBasicMaterial({color:0xf0e68c}));
+      setPos(receptionSign,0,2.45,1.9);motel.add(receptionSign);
+      var lamp=new THREE.Mesh(new THREE.SphereGeometry(0.25,8,8),warmMat);
+      setPos(lamp,2.7,1.35,2.25);motel.add(lamp);
+
+      // Ala de habitaciones, más grande y con interiores abiertos.
+      var roomXs=[-6,0,6];
+      for(var r=0;r<roomXs.length;r++){
+        var rx=roomXs[r];
+        var roomFloor=new THREE.Mesh(new THREE.BoxGeometry(5.5,0.1,6),new THREE.MeshLambertMaterial({color:0x5e5047}));
+        setPos(roomFloor,rx,0.05,-12);motel.add(roomFloor);
+        var roomBack=new THREE.Mesh(new THREE.BoxGeometry(5.5,3.2,0.25),wallMat);
+        setPos(roomBack,rx,1.6,-15);motel.add(roomBack);
+        var roomSideL=new THREE.Mesh(new THREE.BoxGeometry(0.2,3.2,6),wallMat);
+        setPos(roomSideL,rx-2.75,1.6,-12);motel.add(roomSideL);
+        var roomSideR=new THREE.Mesh(new THREE.BoxGeometry(0.2,3.2,6),wallMat);
+        setPos(roomSideR,rx+2.75,1.6,-12);motel.add(roomSideR);
+        var roomRoof=new THREE.Mesh(new THREE.BoxGeometry(5.8,0.3,6.3),roofMat);
+        setPos(roomRoof,rx,3.35,-12);motel.add(roomRoof);
+        var door=new THREE.Mesh(new THREE.BoxGeometry(1.1,2.0,0.08),new THREE.MeshLambertMaterial({color:0x4a2d18}));
+        setPos(door,rx,1.0,-8.95);motel.add(door);
+        var doorLight=new THREE.Mesh(new THREE.SphereGeometry(0.14,6,6),warmMat);
+        setPos(doorLight,rx+1.1,2.45,-8.8);motel.add(doorLight);
+        var bed=new THREE.Mesh(new THREE.BoxGeometry(1.9,0.45,2.4),bedMat);
+        setPos(bed,rx-1.1,0.35,-13.3);motel.add(bed);
+        var blanket=new THREE.Mesh(new THREE.BoxGeometry(1.8,0.16,1.4),blanketMat);
+        setPos(blanket,rx-1.1,0.7,-13.65);motel.add(blanket);
+        var nightstand=new THREE.Mesh(new THREE.BoxGeometry(0.55,0.5,0.55),deskMat);
+        setPos(nightstand,rx+1.55,0.3,-13.15);motel.add(nightstand);
+        var roomTV=new THREE.Mesh(new THREE.BoxGeometry(1.0,0.55,0.08),new THREE.MeshBasicMaterial({color:0x111122}));
+        setPos(roomTV,rx+1.5,1.55,-10.4);motel.add(roomTV);
+      }
+
+      setPos(motel, mx, 0, z);
+      G.scene.add(motel);
+      var assignedRoom=i%3;
+      G.motels.push({
+        mesh:motel,z:z,x:mx,dist:spots[i],visited:false,glow:glow,
+        paid:false,roomReady:false,roomNumber:assignedRoom+1,
+        reception:{x:mx,y:0,z:z+2.2},
+        room:{x:mx+roomXs[assignedRoom],y:0,z:z-13.3}
+      });
+    }
+  }
+
+  function placeGasStations(){
+    G.gasStations=[];
+    var spots;
+    if(G.mode==='quick') spots=[10,25,40];
+    else if(G.mode==='long') spots=[20,55,95,140,200,260,330,380];
+    else spots=[12,35,65,100,135];
+
+    for(var i=0;i<spots.length;i++){
+      var z=-spots[i]*60;
+      var rc=getRoadCurve(z);
+      // Lado opuesto a los moteles para diversificar
+      var side=i%2===0?-1:1;
+      var gx=rc+side*22;
+
+      var station=new THREE.Group();
+      var concreteMat=new THREE.MeshLambertMaterial({color:0x9a9a9a});
+      var darkMat=new THREE.MeshLambertMaterial({color:0x2a2a2a});
+      var redMat=new THREE.MeshLambertMaterial({color:0xc62828});
+      var whiteMat=new THREE.MeshLambertMaterial({color:0xeeeeee});
+      var glowMat=new THREE.MeshBasicMaterial({color:0xffdd44});
+
+      // Plataforma de concreto
+      var pad=new THREE.Mesh(new THREE.BoxGeometry(18,0.15,14),concreteMat);
+      setPos(pad,0,0.075,0);station.add(pad);
+
+      // Techo (canopy) sobre los surtidores
+      var canopy=new THREE.Mesh(new THREE.BoxGeometry(16,0.4,8),redMat);
+      setPos(canopy,0,5.2,0);station.add(canopy);
+      // Borde blanco del techo
+      var canopyEdge=new THREE.Mesh(new THREE.BoxGeometry(16.2,0.15,8.2),whiteMat);
+      setPos(canopyEdge,0,4.95,0);station.add(canopyEdge);
+
+      // Columnas de soporte (4)
+      [[-7,3.5],[7,3.5],[-7,-3.5],[7,-3.5]].forEach(function(p){
+        var col=new THREE.Mesh(new THREE.CylinderGeometry(0.25,0.25,5.2,8),whiteMat);
+        setPos(col,p[0],2.6,p[1]);station.add(col);
+      });
+
+      // 2 surtidores de combustible
+      [-3,3].forEach(function(px){
+        var pumpBase=new THREE.Mesh(new THREE.BoxGeometry(1.2,1.8,0.9),redMat);
+        setPos(pumpBase,px,0.9,0);station.add(pumpBase);
+        var pumpTop=new THREE.Mesh(new THREE.BoxGeometry(1.0,0.5,0.7),darkMat);
+        setPos(pumpTop,px,1.85,0);station.add(pumpTop);
+        // Pantallita
+        var screen=new THREE.Mesh(new THREE.BoxGeometry(0.6,0.3,0.05),new THREE.MeshBasicMaterial({color:0x44ff66}));
+        setPos(screen,px,1.85,0.4);station.add(screen);
+        // Manguera (cilindro vertical)
+        var hose=new THREE.Mesh(new THREE.CylinderGeometry(0.05,0.05,0.8,5),darkMat);
+        setPos(hose,px+0.5,1.2,0.5);station.add(hose);
+      });
+
+      // Tienda pequeña al fondo
+      var shop=new THREE.Mesh(new THREE.BoxGeometry(6,3,3),concreteMat);
+      setPos(shop,0,1.5,-6);station.add(shop);
+      var shopRoof=new THREE.Mesh(new THREE.BoxGeometry(6.4,0.3,3.4),redMat);
+      setPos(shopRoof,0,3.15,-6);station.add(shopRoof);
+      // Puerta de la tienda
+      var shopDoor=new THREE.Mesh(new THREE.BoxGeometry(1.2,2.2,0.1),darkMat);
+      setPos(shopDoor,0,1.1,-4.45);station.add(shopDoor);
+      // Ventanas
+      var shopWin=new THREE.Mesh(new THREE.BoxGeometry(1.5,1.0,0.05),new THREE.MeshBasicMaterial({color:0x88ccff}));
+      setPos(shopWin,-2,1.6,-4.45);station.add(shopWin);
+      var shopWin2=new THREE.Mesh(new THREE.BoxGeometry(1.5,1.0,0.05),new THREE.MeshBasicMaterial({color:0x88ccff}));
+      setPos(shopWin2,2,1.6,-4.45);station.add(shopWin2);
+
+      // Cartel grande "GAS"
+      var sign=new THREE.Mesh(new THREE.BoxGeometry(4,2,0.3),new THREE.MeshBasicMaterial({color:0xffdd44}));
+      setPos(sign,0,7.5,0);station.add(sign);
+      var signGlow=new THREE.Mesh(new THREE.SphereGeometry(0.3,8,8),glowMat);
+      setPos(signGlow,2,7.5,0.3);station.add(signGlow);
+
+      // Letras "GAS" simuladas con cajas oscuras
+      [[-1.2,'G'],[0,'A'],[1.2,'S']].forEach(function(letter){
+        var l=new THREE.Mesh(new THREE.BoxGeometry(0.8,1.2,0.05),darkMat);
+        setPos(l,letter[0],7.5,0.16);sign.parent && station.add(l);
+      });
+
+      setPos(station,gx,0,z);
+      G.scene.add(station);
+      G.gasStations.push({
+        mesh:station,x:gx,z:z,
+        // Punto de surtidor (para parar el auto cerca)
+        pumpX:gx,pumpZ:z,
+        signGlow:signGlow
+      });
+    }
+  }
+
+  function createOtherCars(){
+    var cc=['#cc3333','#3333cc','#33cc33','#cccc33','#993399','#33cccc','#cc6633','#888888'];
+    for(var i=0;i<8;i++){
+      var car=new THREE.Group();
+      var body = new THREE.Mesh(new THREE.BoxGeometry(2.1,0.8,4.5),new THREE.MeshLambertMaterial({color:cc[i]}));
+      setPos(body, 0, 0.7, 0);
+      car.add(body);
+      var cabin = new THREE.Mesh(new THREE.BoxGeometry(1.7,0.8,2.2),new THREE.MeshLambertMaterial({color:darkenColor(cc[i],0.85)}));
+      setPos(cabin, 0, 1.5, -0.3);
+      car.add(cabin);
+      var wg=new THREE.CylinderGeometry(0.32,0.32,0.28,8);
+      var wm=new THREE.MeshLambertMaterial({color:0x222222});
+      [[1.1,0.32,1.3],[-1.1,0.32,1.3],[1.1,0.32,-1.3],[-1.1,0.32,-1.3]].forEach(function(p){
+        var w=new THREE.Mesh(wg,wm);w.rotation.z=Math.PI/2;
+        setPos(w, p[0], p[1], p[2]);
+        car.add(w);
+      });
+      var zPos=-180-i*130-Math.random()*80;
+      var lane=(Math.random()>0.5?1:-1)*(1.8+Math.random()*1.5);
+      setPos(car, getRoadCurve(zPos)+lane, 0, zPos);
+      car.userData={speed:18+Math.random()*26,lane:lane,hit:false};
+      G.scene.add(car);G.otherCars.push(car);
+    }
+  }
+
+  function setupControls(){
+    document.addEventListener('keydown',function(e){
+      var k=e.key.toLowerCase();
+      G.keys[k]=true;
+      if(k==='c'&&G.running&&!G.photoMode&&!G.onFoot){
+        G.cameraMode=(G.cameraMode+1)%3;
+        _camPos=null;_camLook=null;
+        notify(['🎥 Tercera persona','🎥 Primera persona','🎥 Cinemática'][G.cameraMode]);
+      }
+      if(k==='p'){G.photoMode?exitPhotoMode():enterPhotoMode()}
+      if(k==='r') toggleRadio();
+      if(k==='f' && G.running && !G.photoMode) toggleVehicle();
+      if(k==='e' && !G.photoMode){G.onFoot?interactOnFoot():checkMotelInteraction()}
+      if(k==='escape' && G.running && !G.photoMode) togglePause();
+    });
+    document.addEventListener('keyup',function(e){G.keys[e.key.toLowerCase()]=false});
+  }
+
+  function togglePause(){
+    G.paused=!G.paused;
+    document.getElementById('pauseMenu').classList.toggle('hidden',!G.paused);
+    if(!G.paused && G.clock) G.clock.getDelta(); // descartar dt acumulado
+  }
+
+  window.resumeGame=function(){
+    if(!G.paused) return;
+    G.paused=false;
+    document.getElementById('pauseMenu').classList.add('hidden');
+    if(G.clock) G.clock.getDelta();
+  };
+
+  window.exitToMainMenu=function(){
+    G.paused=false;
+    document.getElementById('pauseMenu').classList.add('hidden');
+    // Desconectar P2P si estamos en multijugador
+    if(MP.peer){try{MP.peer.destroy()}catch(e){}}
+    MP.peer=null;MP.enabled=false;MP.connected=false;MP.isHost=false;
+    MP.hostConnection=null;MP.clientConnections=[];MP.remotePlayers={};
+    // Limpiar autos remotos
+    for(var pid in MP.remoteCars){
+      if(MP.remoteCars[pid] && G.scene) G.scene.remove(MP.remoteCars[pid]);
+    }
+    MP.remoteCars={};
+    // Limpiar personajes remotos
+    for(var pid2 in MP.remoteCharacters){
+      if(MP.remoteCharacters[pid2] && G.scene) G.scene.remove(MP.remoteCharacters[pid2]);
+    }
+    MP.remoteCharacters={};
+    // Detener el juego y volver al menú principal
+    G.running=false;
+    if(G.renderer && G.renderer.domElement) G.renderer.domElement.remove();
+    if(G.renderer) G.renderer.dispose();
+    G.scene=null;G.vehicle=null;G.character=null;G.clock=null;
+    document.getElementById('hud').classList.add('hidden');
+    document.getElementById('mainMenu').classList.remove('hidden');
+    document.getElementById('soloMenu').classList.add('hidden');
+    document.getElementById('multiplayerMenu').classList.add('hidden');
+  };
+
+  function checkMotelInteraction(){
+    if(G.nearestMotelIdx<0){notify('🏨 Buscá un motel primero con el botón.');return}
+    var motel=G.motels[G.nearestMotelIdx];
+    var dist=G.vehicle.position.distanceTo(new THREE.Vector3(motel.x,0,motel.z));
+    if(dist<45){
+      G.speed=0;
+      notify('🏨 Estacionaste. Bajate con F y andá a recepción.');
+    }else{notify('❌ Estás lejos del motel. Acercate más.')}
+  }
+
+  function interactOnFoot(){
+    if(!G.character)return;
+    var p=G.character.position;
+
+    // === GASOLINERA (solo host/solo con auto propio) ===
+    if(G.vehicle){
+      for(var gi=0;gi<G.gasStations.length;gi++){
+        var gs=G.gasStations[gi];
+        var dGas=p.distanceTo(new THREE.Vector3(gs.pumpX,0,gs.pumpZ));
+        var dCarGas=G.vehicle.position.distanceTo(new THREE.Vector3(gs.pumpX,0,gs.pumpZ));
+        if(dGas<6 && dCarGas<15){
+          var fuelNeeded=100-G.fuel;
+          if(fuelNeeded<1){notify('⛽ El tanque ya está lleno.');return}
+          var costPerUnit=0.8;
+          var cost=Math.ceil(fuelNeeded*costPerUnit);
+          if(G.money<cost){
+            var canAfford=Math.floor(G.money/costPerUnit);
+            if(canAfford<5){notify('❌ Sin dinero para combustible.');return}
+            G.fuel+=canAfford;G.money-=Math.ceil(canAfford*costPerUnit);
+            notify('⛽ Cargaste '+canAfford+'L parciales (-$'+Math.ceil(canAfford*costPerUnit)+'). Tanque al '+Math.round(G.fuel)+'%');
+            return;
+          }
+          G.fuel=100;G.money-=cost;
+          notify('⛽ ¡Tanque lleno! -$'+cost);
+          return;
+        }
+        if(dGas<6 && dCarGas>=15){
+          notify('⛽ Acercá el auto al surtidor primero.');
+          return;
+        }
+      }
+    }
+
+    // === EMPUJAR AUTO (sin combustible, solo host/solo) ===
+    if(G.vehicle && G.fuel<=0){
+      var carDist=p.distanceTo(G.vehicle.position);
+      var fwdX=-Math.sin(G.heading);
+      var fwdZ=-Math.cos(G.heading);
+      var toCharX=p.x-G.vehicle.position.x;
+      var toCharZ=p.z-G.vehicle.position.z;
+      var dot=toCharX*fwdX+toCharZ*fwdZ;
+      if(carDist<4 && dot<-0.3){
+        G.pushingCar=!G.pushingCar;
+        if(G.pushingCar){
+          notify('🚶‍♂️ Empujando el auto. Caminá hacia adelante para moverlo.');
+        }else{
+          notify('🛑 Dejaste de empujar.');
+        }
+        return;
+      }else if(carDist<4 && dot>=-0.3){
+        notify('💡 Ponete DETRÁS del auto para empujarlo.');
+        return;
+      }
+    }
+
+    // === MOTEL ===
+    var bestIdx=-1,bestD=Infinity;
+    for(var i=0;i<G.motels.length;i++){
+      var motel=G.motels[i];
+      var dToReception=p.distanceTo(new THREE.Vector3(motel.reception.x,0,motel.reception.z));
+      var dToRoom=p.distanceTo(new THREE.Vector3(motel.room.x,0,motel.room.z));
+      var d=Math.min(dToReception,dToRoom);
+      if(d<bestD){bestD=d;bestIdx=i}
+    }
+    if(bestIdx<0||bestD>7){notify('No hay nada para interactuar cerca.');return}
+
+    var m=G.motels[bestIdx];
+    var receptionDist=p.distanceTo(new THREE.Vector3(m.reception.x,0,m.reception.z));
+    var roomDist=p.distanceTo(new THREE.Vector3(m.room.x,0,m.room.z));
+
+    if(receptionDist<4){
+      if(m.roomReady){notify('🔑 Ya tenés la habitación '+m.roomNumber+'. Andá al cuarto.');return}
+      if(G.money<40){notify('❌ Necesitás $40 para la habitación.');return}
+      G.money-=40;
+      m.paid=true;m.roomReady=true;
+      G.activeMotelIdx=bestIdx;
+      notify('🛎️ Recepción: habitación '+m.roomNumber+' lista. Seguí las puertas del fondo.');
+      return;
+    }
+
+    if(roomDist<4){
+      if(!m.roomReady){notify('🔒 Primero pasá por recepción para pedir una habitación.');return}
+      sleepInMotel(m,bestIdx);
+      return;
+    }
+
+    notify(m.roomReady?'🔑 Buscá tu habitación al fondo.':'🛎️ Acercate a recepción para pedir habitación.');
+  }
+
+  function sleepInMotel(motel,idx){
+    // Reducir sueño completamente
+    G.sleepiness=0;
+    // Actualizar barra visual inmediatamente
+    document.getElementById('sleepFill').style.width='0%';
+    G.fuel=Math.min(100,G.fuel+10);
+    G.gameTime+=480;
+    G.atMotel=true;G.motelCooldown=35;
+    motel.visited=true;
+    motel.roomReady=false;
+    motel.paid=false;
+    G.activeMotelIdx=-1;
+    document.getElementById('motelIndicator').classList.remove('visible');
+    notify('🛏️ ¡Dormiste profundo! Sueño restaurado completamente.');
+    setTimeout(function(){G.atMotel=false},1500);
+  }
+
+  window.findNearestMotel=function(){
+    var minDist=Infinity,idx=-1;
+    for(var i=0;i<G.motels.length;i++){
+      var d=Math.abs(G.motels[i].z-G.vehicle.position.z);
+      if(d<minDist&&!G.motels[i].visited){minDist=d;idx=i}
+    }
+    G.nearestMotelIdx=idx;
+    if(idx>=0){
+      var distTo=G.vehicle.position.distanceTo(new THREE.Vector3(G.motels[idx].x,0,G.motels[idx].z));
+      if(distTo<45){
+        document.getElementById('motelIndicator').textContent='🏨 Llegaste. E estacionar / F bajar';
+      }else{
+        var kmAway=(distTo*0.005).toFixed(1);
+        document.getElementById('motelIndicator').textContent='🏨 Motel a '+kmAway+' km — recepción y habitaciones';
+      }
+      document.getElementById('motelIndicator').classList.add('visible');
+      notify('🏨 Motel señalado en el mapa');
+    }else{notify('🏨 No hay más moteles.')}
+  };
+
+  window.findNearestGasStation=function(){
+    if(!G.gasStations||G.gasStations.length===0){notify('⛽ No hay gasolineras cargadas.');return}
+    var refZ = G.onFoot ? G.character.position.z : G.vehicle.position.z;
+    var refPos = G.onFoot ? G.character.position : G.vehicle.position;
+    var minDist=Infinity,idx=-1;
+    // Buscar la gasolinera más cercana que esté ADELANTE en la ruta
+    for(var i=0;i<G.gasStations.length;i++){
+      var gs=G.gasStations[i];
+      if(gs.z > refZ + 5) continue; // ya la pasaste
+      var d=refPos.distanceTo(new THREE.Vector3(gs.x,0,gs.z));
+      if(d<minDist){minDist=d;idx=i}
+    }
+    if(idx<0){
+      // Si ya pasaste todas, mostrar la más cercana cualquiera
+      for(var j=0;j<G.gasStations.length;j++){
+        var gs2=G.gasStations[j];
+        var d2=refPos.distanceTo(new THREE.Vector3(gs2.x,0,gs2.z));
+        if(d2<minDist){minDist=d2;idx=j}
+      }
+    }
+    if(idx>=0){
+      var kmAway=(minDist*0.005).toFixed(1);
+      notify('⛽ Gasolinera más cercana: '+kmAway+' km');
+    }else{notify('⛽ No se encontró gasolinera.')}
+  };
+
+  window.toggleRadio=function(){document.getElementById('radioPanel').classList.toggle('active')};
+
+  window.setRadioPreset=function(videoId){
+    if(!G.ytReady){
+      document.getElementById('radioStatus').textContent='⏳ Cargando YouTube...';
+      setTimeout(function(){window.setRadioPreset(videoId)},2000);
+      return;
+    }
+    try{
+      G.ytPlayer.loadVideoById(videoId);
+      document.getElementById('radioStatus').textContent='🎵 Reproduciendo...';
+      G.radioActive=true;
+      document.getElementById('radioPlayBtn').style.display='none';
+      document.getElementById('radioStopBtn').style.display='block';
+    }catch(e){document.getElementById('radioStatus').textContent='❌ Error al cargar'}
+  };
+
+  function extractYTId(url){
+    var m=url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?.*v=|embed\/|v\/|shorts\/))([a-zA-Z0-9_-]{11})/);
+    return m?m[1]:null;
+  }
+
+  window.playRadioLink=function(){
+    var input=document.getElementById('radioInput').value.trim();
+    var statusEl=document.getElementById('radioStatus');
+    if(!input){statusEl.textContent='Ingresá un link primero';return}
+    var vid=extractYTId(input);
+    if(!vid){statusEl.textContent='❌ No es un link válido de YouTube';return}
+
+    if(!G.ytReady){
+      statusEl.textContent='⏳ Cargando YouTube...';
+      setTimeout(function(){ window.playRadioLink(); },2000);
+      return;
+    }
+    try{
+      G.ytPlayer.loadVideoById(vid);
+      statusEl.textContent='🎵 Reproduciendo...';G.radioActive=true;
+      document.getElementById('radioPlayBtn').style.display='none';
+      document.getElementById('radioStopBtn').style.display='block';
+    }catch(e){statusEl.textContent='❌ Error al cargar'}
+  };
+
+  window.stopRadio=function(){
+    if(G.ytPlayer&&G.ytReady){try{G.ytPlayer.stopVideo()}catch(e){}}
+    G.radioActive=false;document.getElementById('radioStatus').textContent='Sin música activa';
+    document.getElementById('radioPlayBtn').style.display='block';
+    document.getElementById('radioStopBtn').style.display='none';
+  };
+
+  function setupRadioViz(){
+    var viz=document.getElementById('radioViz');viz.innerHTML='';
+    for(var i=0;i<24;i++){var b=document.createElement('div');b.className='radioBar';b.style.height='3px';viz.appendChild(b)}
+    setInterval(function(){
+      if(!G.radioActive)return;
+      var bars=document.querySelectorAll('.radioBar');
+      for(var i=0;i<bars.length;i++) bars[i].style.height=(3+Math.random()*30)+'px';
+    },150);
+  }
+
+  function loadYouTubeAPI(){
+    if(G.ytApiLoaded) return;
+    G.ytApiLoaded = true;
+    var tag=document.createElement('script');
+    tag.src='https://www.youtube.com/iframe_api';
+    var firstScript=document.getElementsByTagName('script')[0];
+    firstScript.parentNode.insertBefore(tag,firstScript);
+  }
+
+  function initYouTube(){
+    // Si ya se cargó la API, crear el player directamente
+    if(window.YT && window.YT.Player) {
+      ensureYTDiv();
+      createYTPlayer();
+      return;
+    }
+    window.onYouTubeIframeAPIReady=function(){
+      ensureYTDiv();
+      createYTPlayer();
+    };
+    loadYouTubeAPI();
+  }
+
+  function ensureYTDiv(){
+    // El YT.Player reemplaza el div con un iframe. Si se reinicia el juego, hay que recrear el div.
+    var el = document.getElementById('ytPlayer');
+    if(!el){
+      var d=document.createElement('div');d.id='ytPlayer';
+      d.style.cssText='position:absolute;top:-9999px;left:-9999px;width:1px;height:1px;opacity:0;pointer-events:none;';
+      document.body.appendChild(d);
+    }
+  }
+
+  function createYTPlayer(){
+    // Destruir player anterior si existe
+    if(G.ytPlayer){
+      try{G.ytPlayer.destroy()}catch(e){}
+      G.ytPlayer=null;G.ytReady=false;
+      ensureYTDiv();
+    }
+    if(!window.YT || !window.YT.Player){
+      setTimeout(createYTPlayer, 500);
+      return;
+    }
+    try {
+      G.ytPlayer=new YT.Player('ytPlayer',{
+        height:'1',width:'1',
+        playerVars:{autoplay:0,controls:0,origin:window.location.origin},
+        events:{
+          onReady:function(){
+            G.ytReady=true;
+            document.getElementById('radioStatus').textContent='Radio lista. Pegá un link de YouTube.';
+          },
+          onStateChange:function(ev){
+            var s=document.getElementById('radioStatus');
+            if(ev.data===YT.PlayerState.PLAYING){
+              s.textContent='🎵 Reproduciendo...';G.radioActive=true;
+              document.getElementById('radioPlayBtn').style.display='none';
+              document.getElementById('radioStopBtn').style.display='block';
+            }else if(ev.data===YT.PlayerState.ENDED){
+              s.textContent='🔁 Terminó. Pegá otro link.';G.radioActive=false;
+              document.getElementById('radioPlayBtn').style.display='block';
+              document.getElementById('radioStopBtn').style.display='none';
+            }else if(ev.data===YT.PlayerState.PAUSED){
+              s.textContent='⏸ Pausado';
+            }
+          },
+          onError:function(ev){
+            document.getElementById('radioStatus').textContent='❌ Error (código '+ev.data+'). Probá otro link.';
+            G.radioActive=false;
+            document.getElementById('radioPlayBtn').style.display='block';
+            document.getElementById('radioStopBtn').style.display='none';
+          }
+        }
+      });
+    } catch(e) {
+      setTimeout(createYTPlayer, 1000);
+    }
+  }
+
+  window.enterPhotoMode=function(){if(!G.running)return;G.photoMode=true;document.getElementById('photoMode').classList.add('active')};
+  window.exitPhotoMode=function(){G.photoMode=false;document.getElementById('photoMode').classList.remove('active');_camPos=null;_camLook=null;};
+  window.takePhoto=function(){
+    G.photosTaken++;notify('📸 ¡Foto #'+G.photosTaken+'!');
+    var flash=document.createElement('div');flash.style.cssText='position:fixed;inset:0;background:white;z-index:999;pointer-events:none;';
+    document.body.appendChild(flash);
+    requestAnimationFrame(function(){flash.style.transition='opacity 0.5s';flash.style.opacity='0'});
+    setTimeout(function(){flash.remove()},600);
+  };
+  window.switchDriver=function(){
+    G.driverIdx=(G.driverIdx+1)%Math.max(G.players,1);G.sleepiness=Math.max(0,G.sleepiness-20);
+    var names=['Vos','Amigo 1','Amigo 2','Amigo 3','Amigo 4','Amigo 5','Amigo 6','Amigo 7'];
+    notify('🔄 Conductor: '+names[G.driverIdx]);
+  };
+
+  window.startGame=function(){
+    document.getElementById('mainMenu').classList.add('hidden');
+    document.getElementById('hud').classList.remove('hidden');
+    G.running=true;G.distance=0;G.fuel=100;G.money=500;
+    G.sleepiness=0;G.gameTime=720;G.speed=0;
+    G.photosTaken=0;G.eventsCompleted=0;
+    G.lastEventTime=0;G.nextEventTime=20+Math.random()*15;
+    G.weather='clear';G.weatherTimer=0;
+    G.nearestMotelIdx=-1;G.activeMotelIdx=-1;G.atMotel=false;G.motelCooldown=0;G.collisionCooldown=0;G.cameraShake=0;
+    G.gasStations=[];G.pushingCar=false;
+    G.currentEventVisual=null;G.keys={};
+    G.heading=0;G.steerAngle=0;
+    G.onFoot=false;G.charHeading=0;G.charBobTime=0;
+    _camPos=null;_camLook=null;
+    G.decorPool=[];G.otherCars=[];
+    G.wheels=[];
+    G.motels=[];
+    var modeDists={quick:50,medium:150,long:400};
+    G.targetDistance=modeDists[G.mode];
+
+    initThree();
+    buildWorld();
+    // En multijugador: solo el host tiene auto, los clientes empiezan a pie
+    if(MP.enabled && !MP.isHost){
+      // Cliente: no crear auto, empezar a pie cerca del origen (donde aparecerá el host)
+      createCharacter();
+      G.onFoot=true;
+      G.character.visible=false; // primera persona
+      G.character.position.set(3, 0, 2); // al lado de donde aparece el auto del host
+      G.charHeading=Math.PI; // mirando hacia el auto
+      MP.inHostCar=false;
+    }else{
+      // Solo o Host: crear auto normalmente
+      createVehicle();
+      createCharacter();
+    }
+    placeMotels();
+    placeGasStations();
+    for(var i=0;i<10;i++) generateChunk(-i*80);
+    createOtherCars();
+    setupControls();
+    setupRadioViz();
+    initYouTube();
+    updateHUD();
+    animate();
+    if(MP.enabled && !MP.isHost){
+      notify('🎮 Multijugador: Caminá hacia el auto del host para subirte.');
+    }else{
+      notify('🚗 ¡Viaje iniciado! W/S acelerar/frenar, A/D girar.');
+    }
+  };
+
+  // === MULTIJUGADOR P2P ===
+  function generateRoomCode(){
+    var chars='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    var code='';
+    for(var i=0;i<6;i++) code+=chars.charAt(Math.floor(Math.random()*chars.length));
+    return code;
+  }
+
+  window.showSoloMenu=function(){
+    document.getElementById('mainMenu').classList.add('hidden');
+    document.getElementById('soloMenu').classList.remove('hidden');
+  };
+
+  window.showMultiplayerMenu=function(){
+    document.getElementById('mainMenu').classList.add('hidden');
+    document.getElementById('multiplayerMenu').classList.remove('hidden');
+    document.getElementById('roomInfo').style.display='none';
+    document.getElementById('joinRoomSection').style.display='none';
+    document.getElementById('connectionStatus').textContent='';
+    var nameInput=document.getElementById('playerName');
+    if(!nameInput.value){
+      var saved=localStorage.getItem('roadtrip_name')||'';
+      nameInput.value=saved;
+    }
+  };
+
+  window.backToMainMenu=function(){
+    if(MP.peer){try{MP.peer.destroy()}catch(e){}}
+    MP.peer=null;MP.connected=false;MP.isHost=false;MP.hostConnection=null;
+    MP.clientConnections=[];MP.remotePlayers={};
+    document.getElementById('multiplayerMenu').classList.add('hidden');
+    document.getElementById('soloMenu').classList.add('hidden');
+    document.getElementById('mainMenu').classList.remove('hidden');
+  };
+
+  window.showJoinRoom=function(){
+    document.getElementById('joinRoomSection').style.display='block';
+  };
+
+  function getPlayerName(){
+    var name=document.getElementById('playerName').value.trim();
+    if(!name) name='Jugador'+Math.floor(Math.random()*1000);
+    localStorage.setItem('roadtrip_name',name);
+    return name;
+  }
+
+  window.createRoom=function(){
+    if(typeof Peer==='undefined'){
+      document.getElementById('connectionStatus').textContent='❌ PeerJS no cargó. Revisá tu conexión a internet.';
+      return;
+    }
+    MP.myName=getPlayerName();
+    MP.roomCode=generateRoomCode();
+    MP.isHost=true;
+    MP.remotePlayers={};
+    MP.clientConnections=[];
+    MP.hostCarMesh=null;MP.remoteCharacters={};MP.remoteCars={};
+
+    document.getElementById('connectionStatus').textContent='⏳ Creando sala...';
+
+    try{
+      MP.peer=new Peer('roadtrip-'+MP.roomCode,{debug:1});
+    }catch(e){
+      document.getElementById('connectionStatus').textContent='❌ Error al crear: '+e.message;
+      return;
+    }
+
+    MP.peer.on('open',function(id){
+      MP.myId=id;
+      MP.connected=true;
+      document.getElementById('connectionStatus').textContent='✅ Sala lista';
+      document.getElementById('roomInfo').style.display='block';
+      document.getElementById('roomCodeDisplay').textContent=MP.roomCode;
+      updatePlayersList();
+    });
+
+    MP.peer.on('connection',function(conn){
+      MP.clientConnections.push(conn);
+      conn.on('open',function(){
+        // Enviar info del host al nuevo cliente
+        conn.send({type:'welcome',hostName:MP.myName,roomCode:MP.roomCode,mode:G.mode});
+        updatePlayersList();
+      });
+      conn.on('data',function(data){
+        handleHostData(conn,data);
+      });
+      conn.on('close',function(){
+        MP.clientConnections=MP.clientConnections.filter(function(c){return c!==conn});
+        if(conn.peer && MP.remotePlayers[conn.peer]){
+          delete MP.remotePlayers[conn.peer];
+          if(MP.remoteCars[conn.peer]){
+            G.scene.remove(MP.remoteCars[conn.peer]);
+            delete MP.remoteCars[conn.peer];
+          }
+        }
+        updatePlayersList();
+      });
+      conn.on('error',function(err){
+        console.log('Error de conexión:',err);
+      });
+    });
+
+    MP.peer.on('error',function(err){
+      document.getElementById('connectionStatus').textContent='❌ Error: '+err.type;
+    });
+  };
+
+  window.joinRoom=function(){
+    if(typeof Peer==='undefined'){
+      document.getElementById('connectionStatus').textContent='❌ PeerJS no cargó. Revisá tu conexión a internet.';
+      return;
+    }
+    MP.myName=getPlayerName();
+    var code=document.getElementById('roomCodeInput').value.trim().toUpperCase();
+    if(!code){
+      document.getElementById('connectionStatus').textContent='❌ Ingresá un código';
+      return;
+    }
+    MP.roomCode=code;
+    MP.isHost=false;
+    MP.hostCarMesh=null;MP.remoteCharacters={};MP.remoteCars={};
+
+    document.getElementById('connectionStatus').textContent='⏳ Conectando a sala '+code+'...';
+
+    try{
+      MP.peer=new Peer({debug:1});
+    }catch(e){
+      document.getElementById('connectionStatus').textContent='❌ Error: '+e.message;
+      return;
+    }
+
+    MP.peer.on('open',function(id){
+      MP.myId=id;
+      MP.hostConnection=MP.peer.connect('roadtrip-'+code);
+
+      MP.hostConnection.on('open',function(){
+        MP.connected=true;
+        document.getElementById('connectionStatus').textContent='✅ Conectado a la sala';
+        // Enviar info del cliente al host
+        MP.hostConnection.send({type:'hello',name:MP.myName,vehicleColor:G.vehicleColor});
+      });
+
+      MP.hostConnection.on('data',function(data){
+        handleClientData(data);
+      });
+
+      MP.hostConnection.on('close',function(){
+        document.getElementById('connectionStatus').textContent='🔌 Desconectado del host';
+        MP.connected=false;
+      });
+
+      MP.hostConnection.on('error',function(err){
+        document.getElementById('connectionStatus').textContent='❌ Error: '+err;
+      });
+    });
+
+    MP.peer.on('error',function(err){
+      document.getElementById('connectionStatus').textContent='❌ Error: '+err.type+' (¿Sala existe?)';
+    });
+  };
+
+  function handleHostData(conn,data){
+    if(!data)return;
+    if(data.type==='hello'){
+      MP.remotePlayers[conn.peer]={name:data.name,color:data.vehicleColor||'#4a90d9'};
+      updatePlayersList();
+      // Broadcast nuevo jugador a todos
+      broadcastToClients({type:'playerJoined',peerId:conn.peer,name:data.name,color:data.vehicleColor});
+    }
+    if(data.type==='clientSync'){
+      // Actualizar datos del cliente (posición de personaje)
+      if(MP.remotePlayers[conn.peer]){
+        MP.remotePlayers[conn.peer].onFoot=data.onFoot;
+        MP.remotePlayers[conn.peer].x=data.x;
+        MP.remotePlayers[conn.peer].z=data.z;
+        MP.remotePlayers[conn.peer].charHeading=data.charHeading;
+        MP.remotePlayers[conn.peer].name=data.name;
+      }
+    }
+  }
+
+  function handleClientData(data){
+    if(!data)return;
+    if(data.type==='welcome'){
+      notify('🎮 Unido a sala de '+data.hostName);
+    }
+    if(data.type==='gameStart'){
+      G.mode=data.mode;
+      MP.enabled=true; // CRÍTICO: activar multijugador antes de iniciar
+      document.getElementById('multiplayerMenu').classList.add('hidden');
+      startGame();
+    }
+    if(data.type==='playerJoined'){
+      MP.remotePlayers[data.peerId]={name:data.name,color:data.color};
+      notify('👤 '+data.name+' se unió');
+    }
+    if(data.type==='sync'){
+      // Sincronizar auto del host
+      if(data.hostCar){
+        // Si el cliente no tiene auto propio, crear el auto del host
+        if(!MP.hostCarMesh){
+          MP.hostCarMesh=createRemoteCar('#4a90d9','Host');
+          if(G.scene) G.scene.add(MP.hostCarMesh);
+        }
+        // Interpolar posición del auto del host
+        MP.hostCarMesh.position.x+=(data.hostCar.x-MP.hostCarMesh.position.x)*0.15;
+        MP.hostCarMesh.position.y=data.hostCar.y;
+        MP.hostCarMesh.position.z+=(data.hostCar.z-MP.hostCarMesh.position.z)*0.15;
+        MP.hostCarMesh.rotation.y=data.hostCar.heading+Math.PI;
+        // Si el cliente está "en el auto", actualizar G.vehicle virtualmente
+        if(MP.inHostCar){
+          G.heading=data.hostCar.heading;
+          G.speed=data.hostCar.speed;
+          G.fuel=data.hostCar.fuel;
+        }
+      }
+      // Sincronizar posiciones de otros jugadores (personajes)
+      if(data.players){
+        for(var pid in data.players){
+          if(pid===MP.myId)continue;
+          var pd=data.players[pid];
+          MP.remotePlayers[pid]=MP.remotePlayers[pid]||{};
+          MP.remotePlayers[pid].onFoot=pd.onFoot;
+          MP.remotePlayers[pid].x=pd.x;
+          MP.remotePlayers[pid].z=pd.z;
+          MP.remotePlayers[pid].charHeading=pd.charHeading;
+          MP.remotePlayers[pid].name=pd.name;
+        }
+      }
+    }
+  }
+
+  function broadcastToClients(data){
+    for(var i=0;i<MP.clientConnections.length;i++){
+      var c=MP.clientConnections[i];
+      if(c.open) c.send(data);
+    }
+  }
+
+  function updatePlayersList(){
+    var el=document.getElementById('playersList');
+    var html='<strong>Jugadores en sala:</strong><br>';
+    html+='👑 '+MP.myName+' (vos - host)<br>';
+    for(var pid in MP.remotePlayers){
+      html+='👤 '+MP.remotePlayers[pid].name+'<br>';
+    }
+    el.innerHTML=html;
+  }
+
+  window.startMultiplayerGame=function(){
+    if(!MP.connected){
+      notify('❌ Esperá a que la sala esté lista');
+      return;
+    }
+    if(!MP.isHost){
+      notify('❌ Solo el host puede iniciar la partida');
+      return;
+    }
+    MP.enabled=true;
+    document.getElementById('multiplayerMenu').classList.add('hidden');
+    // Notificar a todos los clientes que empieza el juego
+    broadcastToClients({type:'gameStart',mode:G.mode});
+    startGame();
+  };
+
+  function updateMultiplayer(dt){
+    if(!MP.enabled||!MP.connected)return;
+
+    MP.syncTimer+=dt;
+    if(MP.syncTimer>=0.05){ // 20 veces por segundo
+      MP.syncTimer=0;
+
+      if(MP.isHost){
+        // Host envía su posición de auto + posición de personaje (si está a pie)
+        var syncData={
+          type:'sync',
+          hostCar:{
+            x:G.vehicle.position.x,
+            y:G.vehicle.position.y,
+            z:G.vehicle.position.z,
+            heading:G.heading,
+            speed:G.speed,
+            fuel:G.fuel
+          },
+          players:{}
+        };
+        // Incluir al host si está a pie
+        if(G.onFoot && G.character){
+          syncData.players[MP.myId]={
+            x:G.character.position.x,
+            z:G.character.position.z,
+            charHeading:G.charHeading,
+            name:MP.myName,
+            onFoot:true
+          };
+        }else{
+          syncData.players[MP.myId]={
+            onFoot:false,
+            name:MP.myName
+          };
+        }
+        broadcastToClients(syncData);
+      }else{
+        // Cliente envía su posición de personaje (siempre está a pie o en el auto del host)
+        if(MP.hostConnection && MP.hostConnection.open){
+          var clientData={
+            type:'clientSync',
+            peerId:MP.myId,
+            name:MP.myName
+          };
+          if(G.onFoot && G.character){
+            clientData.onFoot=true;
+            clientData.x=G.character.position.x;
+            clientData.z=G.character.position.z;
+            clientData.charHeading=G.charHeading;
+          }else{
+            clientData.onFoot=false; // Está en el auto del host
+          }
+          MP.hostConnection.send(clientData);
+        }
+      }
+    }
+
+    // Renderizar jugadores remotos como personajes (no autos)
+    if(G.scene){
+      for(var pid in MP.remotePlayers){
+        if(pid===MP.myId)continue;
+        var p=MP.remotePlayers[pid];
+        
+        if(p.onFoot && typeof p.x!=='undefined'){
+          // Crear/actualizar personaje remoto
+          var char=MP.remoteCharacters[pid];
+          if(!char){
+            char=createRemoteCharacter(p.name);
+            MP.remoteCharacters[pid]=char;
+            G.scene.add(char);
+          }
+          // Ocultar auto remoto si existe
+          if(MP.remoteCars[pid]){
+            MP.remoteCars[pid].visible=false;
+          }
+          // Interpolar posición del personaje
+          char.position.x+=(p.x-char.position.x)*Math.min(1,dt*10);
+          char.position.z+=(p.z-char.position.z)*Math.min(1,dt*10);
+          char.rotation.y=p.charHeading+Math.PI;
+          char.visible=true;
+        }else{
+          // Está en el auto, ocultar personaje
+          if(MP.remoteCharacters[pid]){
+            MP.remoteCharacters[pid].visible=false;
+          }
+        }
+      }
+    }
+  }
+
+  function createRemoteCharacter(name){
+    var char=new THREE.Group();
+    // Cuerpo (torso)
+    var body=new THREE.Mesh(
+      new THREE.BoxGeometry(0.5,0.7,0.3),
+      new THREE.MeshLambertMaterial({color:0x4a90d9})
+    );
+    setPos(body,0,1.2,0);
+    char.add(body);
+    // Cabeza
+    var head=new THREE.Mesh(
+      new THREE.BoxGeometry(0.35,0.35,0.35),
+      new THREE.MeshLambertMaterial({color:0xffdbac})
+    );
+    setPos(head,0,1.75,0);
+    char.add(head);
+    // Piernas
+    var legL=new THREE.Mesh(
+      new THREE.BoxGeometry(0.2,0.6,0.2),
+      new THREE.MeshLambertMaterial({color:0x2c3e50})
+    );
+    setPos(legL,-0.15,0.5,0);
+    char.add(legL);
+    var legR=new THREE.Mesh(
+      new THREE.BoxGeometry(0.2,0.6,0.2),
+      new THREE.MeshLambertMaterial({color:0x2c3e50})
+    );
+    setPos(legR,0.15,0.5,0);
+    char.add(legR);
+    // Brazos
+    var armL=new THREE.Mesh(
+      new THREE.BoxGeometry(0.15,0.6,0.15),
+      new THREE.MeshLambertMaterial({color:0x4a90d9})
+    );
+    setPos(armL,-0.35,1.2,0);
+    char.add(armL);
+    var armR=new THREE.Mesh(
+      new THREE.BoxGeometry(0.15,0.6,0.15),
+      new THREE.MeshLambertMaterial({color:0x4a90d9})
+    );
+    setPos(armR,0.35,1.2,0);
+    char.add(armR);
+    // Nombre sobre la cabeza (sprite)
+    var canvas=document.createElement('canvas');
+    canvas.width=256;canvas.height=64;
+    var ctx=canvas.getContext('2d');
+    ctx.fillStyle='rgba(15,12,41,0.7)';
+    ctx.fillRect(0,0,256,64);
+    ctx.font='bold 28px Inter,sans-serif';
+    ctx.fillStyle='#f0e68c';
+    ctx.textAlign='center';
+    ctx.fillText(name,128,42);
+    var texture=new THREE.CanvasTexture(canvas);
+    var spriteMat=new THREE.SpriteMaterial({map:texture,transparent:true});
+    var sprite=new THREE.Sprite(spriteMat);
+    sprite.scale.set(3,0.75,1);
+    setPos(sprite,0,2.4,0);
+    char.add(sprite);
+    return char;
+  }
+
+  function createRemoteCar(color,name){
+    var car=new THREE.Group();
+    var body=new THREE.Mesh(
+      new THREE.BoxGeometry(2.1,0.8,4.5),
+      new THREE.MeshLambertMaterial({color:color})
+    );
+    setPos(body,0,0.7,0);
+    car.add(body);
+    var cabin=new THREE.Mesh(
+      new THREE.BoxGeometry(1.7,0.8,2.2),
+      new THREE.MeshLambertMaterial({color:darkenColor(color,0.85)})
+    );
+    setPos(cabin,0,1.5,-0.3);
+    car.add(cabin);
+    var wg=new THREE.CylinderGeometry(0.32,0.32,0.28,8);
+    var wm=new THREE.MeshLambertMaterial({color:0x222222});
+    [[1.1,0.32,1.3],[-1.1,0.32,1.3],[1.1,0.32,-1.3],[-1.1,0.32,-1.3]].forEach(function(p){
+      var w=new THREE.Mesh(wg,wm);w.rotation.z=Math.PI/2;
+      setPos(w,p[0],p[1],p[2]);
+      car.add(w);
+    });
+    // Nombre sobre el auto (sprite)
+    var canvas=document.createElement('canvas');
+    canvas.width=256;canvas.height=64;
+    var ctx=canvas.getContext('2d');
+    ctx.fillStyle='rgba(15,12,41,0.7)';
+    ctx.fillRect(0,0,256,64);
+    ctx.font='bold 28px Inter,sans-serif';
+    ctx.fillStyle='#f0e68c';
+    ctx.textAlign='center';
+    ctx.fillText(name,128,42);
+    var texture=new THREE.CanvasTexture(canvas);
+    var spriteMat=new THREE.SpriteMaterial({map:texture,transparent:true});
+    var sprite=new THREE.Sprite(spriteMat);
+    sprite.scale.set(3,0.75,1);
+    setPos(sprite,0,3,0);
+    car.add(sprite);
+    return car;
+  }
+
+  window.backToMenu=function(){
+    document.getElementById('endScreen').classList.remove('active');
+    document.getElementById('hud').classList.add('hidden');
+    document.getElementById('mainMenu').classList.remove('hidden');
+    if(G.renderer){G.renderer.domElement.remove();G.renderer.dispose()}
+    G.scene=null;G.vehicle=null;G.clock=null;G.running=false;
+    G.character=null;G.onFoot=false;
+    if(G.ytPlayer){try{G.ytPlayer.destroy()}catch(e){}}
+    G.ytPlayer=null;G.ytReady=false;G.radioActive=false;
+    // Clean up decor pool
+    for(var i=0;i<G.decorPool.length;i++){if(G.decorPool[i].mesh.parent)G.decorPool[i].mesh.parent.remove(G.decorPool[i].mesh)}
+    G.decorPool=[];
+    G.otherCars=[];
+    G.wheels=[];
+    G.motels=[];
+  };
+
+  function animate(){
+    if(!G.running)return;
+    requestAnimationFrame(animate);
+    var dt=Math.min(G.clock.getDelta(),0.05);
+    // Si está pausado, solo renderizar sin actualizar
+    if(G.paused){
+      if(G.renderer && G.scene && G.camera) G.renderer.render(G.scene,G.camera);
+      return;
+    }
+    var isClient = MP.enabled && !MP.isHost;
+
+    if(G.photoMode){
+      updatePhotoCamera(dt);
+    }else if(isClient){
+      // CLIENTE multijugador: no maneja el auto, solo camina o va de pasajero
+      if(G.onFoot){
+        updateOnFoot(dt);updateOnFootCamera(dt);
+      }else{
+        // Pasajero en el auto del host: cámara sigue al auto del host
+        updatePassengerCamera(dt);
+      }
+      updateDayNight(dt);updateChunks();updateOtherCars(dt);
+      updateMotelGlow(dt);updateGasGlow(dt);
+    }else if(G.onFoot){
+      updateOnFoot(dt);updateOnFootCamera(dt);updateDayNight(dt);updateWeather(dt);
+      updateChunks();updateOtherCars(dt);updateMotelGlow(dt);updateGasGlow(dt);
+    }else{
+      updateDriving(dt);updateCamera(dt);updateDayNight(dt);updateWeather(dt);
+      updateSleepiness(dt);updateFuel(dt);updateChunks();updateOtherCars(dt);checkCarCollisions(dt);
+      updateVisualEvents(dt);checkVisualEvents(dt);updateMotelIndicator(dt);updateMotelGlow(dt);updateGasGlow(dt);
+    }
+    if(MP.enabled) updateMultiplayer(dt);
+    updateHUD();
+    if(G.renderer && G.scene && G.camera) G.renderer.render(G.scene,G.camera);
+  }
+
+  // Cámara para el cliente cuando viaja de pasajero en el auto del host
+  function updatePassengerCamera(dt){
+    if(!MP.hostCarMesh) return;
+    var hc = MP.hostCarMesh.position;
+    var heading = MP.hostCarMesh.rotation.y - Math.PI;
+    var fwdX = -Math.sin(heading);
+    var fwdZ = -Math.cos(heading);
+    // Cámara tercera persona detrás del auto del host
+    var tp = new THREE.Vector3(hc.x - fwdX*7, hc.y + 3.5, hc.z - fwdZ*7);
+    var la = new THREE.Vector3(hc.x + fwdX*8, hc.y + 0.8, hc.z + fwdZ*8);
+    if(!_camPos) _camPos = tp.clone();
+    if(!_camLook) _camLook = la.clone();
+    var t = 1 - Math.exp(-8 * dt);
+    _camPos.lerp(tp, t);
+    _camLook.lerp(la, t * 1.3);
+    G.camera.position.copy(_camPos);
+    G.camera.lookAt(_camLook);
+    // Mantener al personaje "dentro" del auto y oculto
+    if(G.character){
+      G.character.position.set(hc.x, 0.5, hc.z);
+      G.character.visible = false;
+    }
+  }
+
+  // Variables de cámara suavizada (fuera de la función para persistir entre frames)
+  var _camPos = null;
+  var _camLook = null;
+
+  // === SUBIR / BAJAR DEL AUTO ===
+  window.toggleVehicle=function(){
+    if(!G.running) return;
+
+    // === MULTIJUGADOR: CLIENTE (sin auto propio) ===
+    if(MP.enabled && !MP.isHost){
+      if(MP.inHostCar){
+        // Bajarse del auto del host
+        MP.inHostCar=false;
+        G.onFoot=true;
+        if(G.character){
+          var hc = MP.hostCarMesh;
+          if(hc){
+            var lx = Math.cos(hc.rotation.y - Math.PI);
+            var lz = -Math.sin(hc.rotation.y - Math.PI);
+            G.character.position.set(hc.position.x + lx*2.5, 0, hc.position.z + lz*2.5);
+          }
+          G.character.visible=false;
+        }
+        notify('🚶 Bajaste del auto.');
+      }else{
+        // Subirse al auto del host si está cerca
+        if(!MP.hostCarMesh){ notify('🚗 El auto del host todavía no aparece.'); return; }
+        var dHost = G.character.position.distanceTo(MP.hostCarMesh.position);
+        if(dHost < 5){
+          MP.inHostCar=true;
+          G.onFoot=false;
+          notify('🚗 Subiste al auto del host.');
+        }else{
+          notify('🚶 Acercate al auto del host para subir');
+        }
+      }
+      return;
+    }
+
+    // === SOLO o HOST ===
+    if(!G.vehicle) return;
+    if(G.onFoot){
+      var d = G.character.position.distanceTo(G.vehicle.position);
+      if(d < 4){
+        enterVehicle();
+      }else{
+        notify('🚶 Acercate al auto para subir');
+      }
+    }else{
+      if(Math.abs(G.speed) > 3){
+        notify('🛑 Frená el auto para bajar');
+        return;
+      }
+      exitVehicle();
+    }
+  };
+
+  function exitVehicle(){
+    G.onFoot = true;
+    G.speed = 0;
+    // Posicionar el PJ al lado izquierdo del auto (lado del conductor)
+    var leftX = Math.cos(G.heading);
+    var leftZ = -Math.sin(G.heading);
+    G.character.position.set(
+      G.vehicle.position.x + leftX * 2.2,
+      0,
+      G.vehicle.position.z + leftZ * 2.2
+    );
+    G.charHeading = G.heading;
+    if(G.cameraMode === 1) G.cameraMode = 0;
+    _camPos = null; _camLook = null;
+    // El personaje queda invisible para vista en primera persona a pie
+    G.character.visible = false;
+    notify('🚶 Bajaste del auto. WASD para caminar, F para subir.');
+  }
+
+  function enterVehicle(){
+    G.onFoot = false;
+    G.character.visible = false;
+    _camPos = null; _camLook = null;
+    G.camera.fov = 65;
+    G.camera.updateProjectionMatrix();
+    document.getElementById('motelIndicator').classList.remove('visible');
+    notify('🚗 Subiste al auto.');
+  }
+
+  function updateOnFoot(dt){
+    var fwd = G.keys['w'] || G.keys['arrowup'];
+    var back = G.keys['s'] || G.keys['arrowdown'];
+    var left = G.keys['a'] || G.keys['arrowleft'];
+    var right = G.keys['d'] || G.keys['arrowright'];
+    var run = G.keys['shift'];
+
+    var walkSpeed = run ? 9 : 4.5;
+    var moveX = 0, moveZ = 0;
+
+    // Movimiento relativo a la cámara (la cámara mira hacia el PJ desde atrás)
+    if(fwd){ moveX += Math.sin(G.charHeading); moveZ += Math.cos(G.charHeading); }
+    if(back){ moveX -= Math.sin(G.charHeading); moveZ -= Math.cos(G.charHeading); }
+
+    // Girar el personaje con A/D
+    if(left) G.charHeading += 2.5 * dt;
+    if(right) G.charHeading -= 2.5 * dt;
+
+    // Cancelar empuje si se aleja del auto
+    if(G.pushingCar && G.vehicle){
+      var dCar=G.character.position.distanceTo(G.vehicle.position);
+      if(dCar>5){G.pushingCar=false;notify('🛑 Te alejaste, dejaste de empujar.');}
+    }
+
+    // Empujar es mucho más lento que caminar normal (solo host/solo con auto)
+    var pushing = G.pushingCar && G.fuel<=0 && G.vehicle;
+    if(pushing) walkSpeed = 2.0; // empujar es esfuerzo
+
+    var moving = fwd || back;
+    if(moving){
+      var dir = back ? -1 : 1;
+      var dx = Math.sin(G.charHeading) * walkSpeed * dt * dir;
+      var dz = Math.cos(G.charHeading) * walkSpeed * dt * dir;
+      G.character.position.x += dx;
+      G.character.position.z += dz;
+
+      // Si está empujando y va hacia adelante, mover el auto también
+      if(pushing && fwd){
+        G.vehicle.position.x += dx;
+        G.vehicle.position.z += dz;
+        // Girar el auto para que apunte donde mira el PJ (al empujar)
+        G.heading = G.charHeading;
+        G.vehicle.rotation.y = G.heading + Math.PI;
+        // Aumenta el sueño (esfuerzo)
+        G.sleepiness = Math.min(100, G.sleepiness + dt * 2);
+      }
+
+      // Animación de caminata
+      G.charBobTime += dt * (pushing ? 6 : (run ? 14 : 9));
+      var swing = Math.sin(G.charBobTime) * (pushing ? 0.35 : (run ? 0.7 : 0.5));
+      G.character.userData.legL.rotation.x = swing;
+      G.character.userData.legR.rotation.x = -swing;
+      G.character.userData.armL.rotation.x = pushing ? 0.8 : (-swing * 0.7);
+      G.character.userData.armR.rotation.x = pushing ? 0.8 : (swing * 0.7);
+      // Bob vertical
+      G.character.position.y = Math.abs(Math.sin(G.charBobTime)) * (pushing ? 0.02 : 0.04);
+    }else{
+      // Volver a pose neutral
+      G.character.userData.legL.rotation.x *= (1 - 8*dt);
+      G.character.userData.legR.rotation.x *= (1 - 8*dt);
+      G.character.userData.armL.rotation.x *= (1 - 8*dt);
+      G.character.userData.armR.rotation.x *= (1 - 8*dt);
+      G.character.position.y += (0 - G.character.position.y) * dt * 5;
+    }
+
+    // Orientar el personaje hacia donde mira
+    G.character.rotation.y = G.charHeading + Math.PI;
+
+    // Determinar el auto de referencia (propio o del host en multijugador)
+    var refCar = G.vehicle ? G.vehicle.position : (MP.hostCarMesh ? MP.hostCarMesh.position : null);
+    var el = document.getElementById('motelIndicator');
+
+    // PRIORIDAD: Si estás empujando, mostrarlo
+    if(G.pushingCar){
+      el.textContent = '🚶‍♂️ Empujando el auto — W para avanzar, E para soltar';
+      el.classList.add('visible');
+      return;
+    }
+
+    // Gasolinera cerca (solo si tengo auto propio)
+    if(G.vehicle){
+      for(var gi=0;gi<G.gasStations.length;gi++){
+        var gs=G.gasStations[gi];
+        var dGas=G.character.position.distanceTo(new THREE.Vector3(gs.pumpX,0,gs.pumpZ));
+        if(dGas<6){
+          var dCarGas=G.vehicle.position.distanceTo(new THREE.Vector3(gs.pumpX,0,gs.pumpZ));
+          if(dCarGas<15){
+            el.textContent = '⛽ E: cargar combustible (~$' + Math.ceil((100-G.fuel)*0.8) + ')';
+          }else{
+            el.textContent = '⛽ Acercá el auto al surtidor';
+          }
+          el.classList.add('visible');
+          return;
+        }
+      }
+    }
+
+    var dToCar = refCar ? G.character.position.distanceTo(refCar) : Infinity;
+
+    if(dToCar < 4 && refCar){
+      if(G.vehicle && G.fuel<=0){
+        // Verificar si está detrás (solo host/solo)
+        var fwdX=-Math.sin(G.heading);
+        var fwdZ=-Math.cos(G.heading);
+        var toCharX=G.character.position.x-refCar.x;
+        var toCharZ=G.character.position.z-refCar.z;
+        var dot=toCharX*fwdX+toCharZ*fwdZ;
+        if(dot<-0.3){
+          el.textContent = '🚶‍♂️ E: empujar / F: subir';
+        }else{
+          el.textContent = '⛽ Sin combustible — ponete DETRÁS y E para empujar';
+        }
+      }else{
+        el.textContent = '🚗 Presioná F para subir al auto';
+      }
+      el.classList.add('visible');
+      return;
+    }
+
+    var bestText='';
+    var bestDist=Infinity;
+    for(var mi=0;mi<G.motels.length;mi++){
+      var motel=G.motels[mi];
+      var rd=G.character.position.distanceTo(new THREE.Vector3(motel.reception.x,0,motel.reception.z));
+      var bd=G.character.position.distanceTo(new THREE.Vector3(motel.room.x,0,motel.room.z));
+      if(rd<bestDist){
+        bestDist=rd;
+        bestText=motel.roomReady?'🛎️ E: consultar habitación '+motel.roomNumber:'🛎️ E: pedir habitación ($40)';
+      }
+      if(bd<bestDist){
+        bestDist=bd;
+        bestText=motel.roomReady?'🛏️ E: dormir en habitación '+motel.roomNumber:'🔒 Primero pedí una habitación en recepción';
+      }
+    }
+    if(bestDist<4.2){
+      el.textContent=bestText;
+      el.classList.add('visible');
+    }else if(bestDist<18){
+      el.textContent=bestText.indexOf('dormir')>=0?'🔑 Tu habitación está al fondo':'🛎️ Recepción cerca';
+      el.classList.add('visible');
+    }else{
+      el.classList.remove('visible');
+    }
+  }
+
+  function updateOnFootCamera(dt){
+    var cp = G.character.position;
+    // PRIMERA PERSONA: cámara en la cabeza del PJ mirando hacia adelante
+    var headY = cp.y + 1.55; // altura de los ojos
+    var fwdX = Math.sin(G.charHeading);
+    var fwdZ = Math.cos(G.charHeading);
+
+    // Posición directa en la cabeza
+    G.camera.position.set(cp.x, headY, cp.z);
+
+    // Mirar hacia donde apunta el personaje
+    G.camera.lookAt(
+      cp.x + fwdX * 10,
+      headY - 0.1,
+      cp.z + fwdZ * 10
+    );
+
+    // FOV más inmersivo para primera persona
+    G.camera.fov = 75;
+    G.camera.updateProjectionMatrix();
+  }
+
+  function updateDriving(dt){
+    if(G.atMotel) return;
+    var accel = G.keys['w'] || G.keys['arrowup'];
+    var brake = G.keys['s'] || G.keys['arrowdown'];
+    var steerLeft = G.keys['a'] || G.keys['arrowleft'];
+    var steerRight = G.keys['d'] || G.keys['arrowright'];
+    var steerInput = (steerLeft ? 1 : 0) + (steerRight ? -1 : 0);
+    var handbrake = G.keys[' '];
+
+    // === MOTOR ===
+    var outOfFuel = G.fuel <= 0;
+    if(accel && !outOfFuel) {
+      var accelPower = 28 * (1.0 - (Math.max(G.speed,0) / G.maxSpeed) * 0.55);
+      G.speed += accelPower * dt;
+    } else if(brake) {
+      if(G.speed > 1) G.speed -= 70 * dt;
+      else if(!outOfFuel) G.speed = Math.max(G.speed - 20 * dt, -25);
+    } else {
+      // Desaceleración natural
+      if(G.speed > 0) G.speed = Math.max(0, G.speed - (5 + G.speed * 0.03) * dt);
+      else if(G.speed < 0) G.speed = Math.min(0, G.speed + 5 * dt);
+    }
+    // Sin combustible: el auto solo puede frenar, no acelerar
+    if(outOfFuel && G.speed > 0) {
+      G.speed = Math.max(0, G.speed - 6 * dt);
+    }
+    if(handbrake && Math.abs(G.speed) > 5) G.speed *= (1 - 2.5 * dt);
+    G.speed = THREE.MathUtils.clamp(G.speed, -25, G.maxSpeed);
+    if(Math.abs(G.speed) < 0.2) G.speed = 0;
+
+    // === STEERING ===
+    // Cuanto más rápido, menos giro (estabilidad en recta)
+    var absSpd = Math.abs(G.speed);
+    var steerEfficiency;
+    if(absSpd < 5) steerEfficiency = absSpd / 5 * 0.5; // casi quieto = poco giro
+    else if(absSpd < 60) steerEfficiency = 1.0; // velocidad normal = giro completo
+    else steerEfficiency = 1.0 - (absSpd - 60) / (G.maxSpeed - 60) * 0.5; // alta vel = menos giro
+
+    var maxSteer = 1.8;
+    var direction = G.speed >= 0 ? 1 : -1;
+    G.heading += steerInput * maxSteer * steerEfficiency * dt * direction;
+
+    // Steer visual suave
+    var targetSteer = steerInput * 0.35;
+    G.steerAngle += (targetSteer - G.steerAngle) * dt * 10;
+
+    // === MOVIMIENTO ===
+    var fwdX = -Math.sin(G.heading);
+    var fwdZ = -Math.cos(G.heading);
+    G.vehicle.position.x += fwdX * G.speed * dt;
+    G.vehicle.position.z += fwdZ * G.speed * dt;
+
+    // === CARRETERA: el auto sigue las curvas naturalmente ===
+    var roadX = getRoadCurve(G.vehicle.position.z);
+    var roadAhead = getRoadCurve(G.vehicle.position.z + fwdZ * 15);
+    // Calcular el ángulo natural de la carretera
+    var roadDx = roadAhead - roadX;
+    var roadAngle = Math.atan2(-roadDx, -15 * (fwdZ < 0 ? -1 : 1));
+
+    // Fuerza suave que alinea el heading con la carretera (como un carril)
+    var angleDiff = roadAngle - G.heading;
+    // Normalizar
+    while(angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+    while(angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+    // Cuanto más rápido, más se alinea automáticamente (asistencia de carril)
+    var alignForce = Math.min(absSpd / 80, 0.6) * 0.8;
+    if(steerInput === 0 && absSpd > 5) {
+      G.heading += angleDiff * alignForce * dt;
+    }
+
+    // Offset lateral respecto al centro
+    var lateralOffset = G.vehicle.position.x - roadX;
+
+    // Fuera del asfalto: fricción
+    if(Math.abs(lateralOffset) > 7) {
+      G.speed *= (1 - 1.2 * dt);
+    }
+    // Barrera blanda lejana
+    if(Math.abs(lateralOffset) > 16) {
+      G.vehicle.position.x += (lateralOffset > 0 ? -1 : 1) * 12 * dt;
+    }
+    G.vehicle.position.x = THREE.MathUtils.clamp(G.vehicle.position.x, roadX - 55, roadX + 55);
+
+    // === ROTACIÓN VISUAL ===
+    G.vehicle.rotation.y = G.heading + Math.PI;
+
+    // Roll en curvas
+    var rollTarget = -steerInput * 0.04 * steerEfficiency * direction;
+    G.vehicle.rotation.z += (rollTarget - G.vehicle.rotation.z) * dt * 8;
+
+    // Pitch al frenar/acelerar
+    var pitchTarget = 0;
+    if(accel && G.speed > 0) pitchTarget = 0.02;
+    else if(brake && G.speed > 3) pitchTarget = -0.04;
+    G.vehicle.rotation.x += (pitchTarget - G.vehicle.rotation.x) * dt * 6;
+
+    // Suspensión (bounce)
+    if(absSpd > 10) {
+      var bf = absSpd * 0.05;
+      var ba = 0.015 + (absSpd - 10) * 0.00025;
+      G.vehicle.position.y = Math.sin(G.clock.getElapsedTime() * bf) * ba;
+    } else {
+      G.vehicle.position.y += (0 - G.vehicle.position.y) * dt * 4;
+    }
+
+    // === RUEDAS ===
+    for(var i = 0; i < G.wheels.length; i++) {
+      G.wheels[i].rotation.x += G.speed * dt * 0.9;
+      if(i < 2) G.wheels[i].rotation.y = -G.steerAngle;
+    }
+
+    G.distance += absSpd * dt * 0.005;
+    if(G.distance >= G.targetDistance) endGame();
+  }
+
+  function updateCamera(dt){
+    if(!G.vehicle) return;
+    var vp = G.vehicle.position;
+
+    // Dirección "adelante" del auto
+    var fwdX = -Math.sin(G.heading);
+    var fwdZ = -Math.cos(G.heading);
+    var rightX = -fwdZ;
+    var rightZ = fwdX;
+
+    var tp, la;
+
+    if(G.cameraMode === 0){
+      // === TERCERA PERSONA ===
+      // Cámara pegada detrás del auto, siguiendo su heading directamente
+      tp = new THREE.Vector3(
+        vp.x - fwdX * 7 + 0,    // 7 unidades detrás
+        vp.y + 3.5,              // 3.5 arriba
+        vp.z - fwdZ * 7
+      );
+      la = new THREE.Vector3(
+        vp.x + fwdX * 8,        // mirar 8 unidades adelante
+        vp.y + 0.8,
+        vp.z + fwdZ * 8
+      );
+
+    } else if(G.cameraMode === 1){
+      // === PRIMERA PERSONA: fija al auto, sin lerp ===
+      var eyeY = G.cabinBottom + G.ch * 0.35 + vp.y;
+
+      // Posición: asiento del conductor (a la derecha, un poco adelante del centro)
+      G.camera.position.set(
+        vp.x + rightX * 0.3 + fwdX * 0.1,
+        eyeY,
+        vp.z + rightZ * 0.3 + fwdZ * 0.1
+      );
+      // Mirar: adelante en la dirección del heading (sobre el capó)
+      G.camera.lookAt(
+        vp.x + fwdX * 60,
+        eyeY - 0.55,
+        vp.z + fwdZ * 60
+      );
+      return; // Sin lerp — posición directa
+
+    } else {
+      // === CINEMÁTICA ===
+      var t = G.clock.getElapsedTime() * 0.25;
+      var r = 6;
+      tp = new THREE.Vector3(
+        vp.x + Math.sin(G.heading + t) * r,
+        vp.y + 2.8 + Math.sin(t * 0.6) * 0.6,
+        vp.z + Math.cos(G.heading + t) * r
+      );
+      la = new THREE.Vector3(vp.x, vp.y + 1, vp.z);
+    }
+
+    // Lerp frame-rate independent
+    if(!_camPos) _camPos = tp.clone();
+    if(!_camLook) _camLook = la.clone();
+
+    // Factor base: 3ra persona rápida, cinemática suave
+    var factor = G.cameraMode === 0 ? 8 : 4;
+    var t = 1 - Math.exp(-factor * dt);
+    _camPos.lerp(tp, t);
+    _camLook.lerp(la, t * 1.3);
+
+    G.camera.position.copy(_camPos);
+    // Camera shake tras colisiones
+    if(G.cameraShake>0){
+      G.camera.position.x+=(Math.random()-0.5)*G.cameraShake*2;
+      G.camera.position.y+=(Math.random()-0.5)*G.cameraShake*1.5;
+      G.camera.position.z+=(Math.random()-0.5)*G.cameraShake*2;
+      G.cameraShake=Math.max(0,G.cameraShake-dt*1.2);
+    }
+    G.camera.lookAt(_camLook);
+  }
+
+  function updatePhotoCamera(dt){
+    var spd = 20 * dt;
+    if(G.keys['w']||G.keys['arrowup']) G.camera.position.z -= spd;
+    if(G.keys['s']||G.keys['arrowdown']) G.camera.position.z += spd;
+    if(G.keys['a']||G.keys['arrowleft']) G.camera.position.x -= spd;
+    if(G.keys['d']||G.keys['arrowright']) G.camera.position.x += spd;
+    if(G.keys['q']) G.camera.position.y += spd;
+    if(G.keys['e']) G.camera.position.y -= spd;
+    // La cámara en modo foto mira hacia el auto
+    if(G.vehicle) {
+      G.camera.lookAt(G.vehicle.position.x, G.vehicle.position.y + 1.5, G.vehicle.position.z);
+    }
+  }
+
+  function lerpC(c1,c2,t){return new THREE.Color(c1).lerp(new THREE.Color(c2),t).getHex()}
+
+  function updateDayNight(dt){
+    G.gameTime+=dt*40;
+    var hour=(G.gameTime%1440)/60;
+    var angle=(hour/24)*Math.PI*2-Math.PI/2;
+    if(G.sunMesh) G.sunMesh.position.set(Math.cos(angle)*400,Math.sin(angle)*200+80,-300);
+    if(G.moonMesh) G.moonMesh.position.set(Math.cos(angle+Math.PI)*400,Math.sin(angle+Math.PI)*200+80,-300);
+
+    var topC,botC;
+    if(hour>=5.5&&hour<7){var t=(hour-5.5)/1.5;topC=lerpC(0x0a0a2e,0x4488cc,t);botC=lerpC(0x1a1a3e,0xff8844,t)}
+    else if(hour>=7&&hour<17){topC=0x4488cc;botC=0x88bbee}
+    else if(hour>=17&&hour<19.5){var t=(hour-17)/2.5;topC=lerpC(0x4488cc,0x221144,t);botC=lerpC(0x88bbee,0xff4422,t)}
+    else if(hour>=19.5&&hour<21){var t=(hour-19.5)/1.5;topC=lerpC(0x221144,0x0a0a1e,t);botC=lerpC(0xff4422,0x1a1a2e,t)}
+    else{topC=0x0a0a1e;botC=0x1a1a2e}
+
+    if(G.skyMesh) G.skyMesh.material.color.setHex(botC);
+    G.scene.background.setHex(botC);
+    if(G.scene.fog) G.scene.fog.color.setHex(botC);
+
+    var isNight=hour<5.5||hour>20;
+    var sb=isNight?0.08:(hour>=5.5&&hour<7?(hour-5.5)/1.5:(hour>=17&&hour<19.5?1-(hour-17)/2.5:(hour>=19.5&&hour<20?1-(hour-19.5)/0.5:1)));
+    G.dirLight.intensity=Math.max(sb,0.15);
+
+    var so=isNight?0.9:(hour>=5.5&&hour<6.5?0.9-(hour-5.5)*0.9:(hour>=18.5&&hour<19.5?(hour-18.5)*0.9:0));
+    if(G.starField) G.starField.material.opacity=so;
+
+    G.renderer.setClearColor(botC);
+  }
+
+  function updateWeather(dt){
+    G.weatherTimer+=dt;
+    if(G.weatherTimer>35){
+      G.weatherTimer=0;var r=Math.random();
+      if(r<0.3&&G.weather!=='rain'){G.weather='rain';notify('🌧️ Lluvia...')}
+      else if(r<0.5&&G.weather==='rain'){G.weather='clear';notify('☀️ Paró')}
+      else if(r<0.65){G.weather='fog';notify('🌫️ Niebla')}
+      else{G.weather='clear'}
+    }
+    if(G.rainParticles){
+      var tgt=G.weather==='rain'?0.6:0;
+      G.rainParticles.material.opacity+=(tgt-G.rainParticles.material.opacity)*dt*3;
+      if(G.weather==='rain'){
+        var pos=G.rainParticles.geometry.attributes.position.array;
+        for(var i=1;i<pos.length;i+=3){pos[i]-=160*dt;if(pos[i]<0)pos[i]=120}
+        G.rainParticles.geometry.attributes.position.needsUpdate=true;
+        G.rainParticles.position.set(G.vehicle.position.x,0,G.vehicle.position.z);
+      }
+    }
+    if(G.weather==='fog'){G.scene.fog=new THREE.Fog(G.scene.background.clone().getHex(),60,300)}
+    else if(G.weather==='rain'){G.scene.fog=new THREE.Fog(G.scene.background.clone().getHex(),80,350)}
+    else{G.scene.fog=new THREE.Fog(G.scene.background.clone().getHex(),100,400)}
+  }
+
+  function updateSleepiness(dt){
+    if(G.speed>10) G.sleepiness+=dt*0.25;
+    G.sleepiness=Math.min(G.sleepiness,100);
+    if(G.sleepiness>80&&Math.random()<dt*0.08){notify('😴 ¡Muy dormido!');G.speed*=0.98}
+    document.getElementById('sleepFill').style.width=G.sleepiness+'%';
+  }
+
+  function updateFuel(dt){
+    if(G.speed>5) G.fuel-=dt*0.2*(G.speed/G.maxSpeed);
+    G.fuel=Math.max(G.fuel,0);
+    if(G.fuel<20&&G.fuel>0&&Math.random()<dt*0.1) notify('⛽ ¡Combustible bajo!');
+    if(G.fuel<=0&&!G._noFuelNotified){
+      G._noFuelNotified=true;
+      notify('⛽ ¡Sin combustible! Bajate y empujá el auto (F + ponete atrás y E).');
+    }
+    if(G.fuel>0) G._noFuelNotified=false;
+  }
+
+  function updateChunks(){
+    var ref=getRefPos();
+    var pz=ref.z;
+    var neededFront=pz-8*80;
+    var neededBack=pz+3*80;
+    G.decorPool=G.decorPool.filter(function(ch){
+      if(ch.zStart>neededBack+80){
+        if(ch.mesh.parent) ch.mesh.parent.remove(ch.mesh);
+        return false;
+      }
+      return true;
+    });
+    var minZ=Infinity;
+    for(var i=0;i<G.decorPool.length;i++){if(G.decorPool[i].zEnd<minZ)minZ=G.decorPool[i].zEnd}
+    if(minZ>neededFront){for(var zz=minZ-80;zz>neededFront-80;zz-=80)generateChunk(zz)}
+    if(G.ground){G.ground.position.x=ref.x;G.ground.position.z=ref.z}
+  }
+
+  function updateOtherCars(dt){
+    var ref=getRefPos();
+    for(var i=0;i<G.otherCars.length;i++){
+      var car=G.otherCars[i];
+      car.position.z-=car.userData.speed*dt*0.5;
+      car.position.x=getRoadCurve(car.position.z)+car.userData.lane;
+      if(car.position.z>ref.z+80){
+        car.position.z=ref.z-300-Math.random()*200;
+        car.userData.lane=(Math.random()>0.5?1:-1)*(1.8+Math.random()*1.5);
+        car.position.x=getRoadCurve(car.position.z)+car.userData.lane;
+        car.userData.hit=false;
+      }
+    }
+  }
+
+  function checkCarCollisions(dt){
+    if(G.onFoot||!G.vehicle)return;
+    if(G.collisionCooldown>0){G.collisionCooldown-=dt;return}
+    for(var i=0;i<G.otherCars.length;i++){
+      var car=G.otherCars[i];
+      var dx=car.position.x-G.vehicle.position.x;
+      var dz=car.position.z-G.vehicle.position.z;
+      var distSq=dx*dx+dz*dz;
+      // Radio de colisión elíptico: más ancho en Z que en X (los autos son largos)
+      var radiusX=2.8,radiusZ=4.8;
+      var ellipseDist=(dx*dx)/(radiusX*radiusX)+(dz*dz)/(radiusZ*radiusZ);
+      if(ellipseDist<1){
+        G.collisionCooldown=2.0;
+        var impact=Math.max(15,Math.abs(G.speed-car.userData.speed*0.5));
+        G.speed=Math.max(0,G.speed*0.15);
+        G.fuel=Math.max(0,G.fuel-8-impact*0.05);
+        G.money=Math.max(0,G.money-20);
+        G.sleepiness=Math.min(100,G.sleepiness+8);
+        // Rebote en dirección opuesta al impacto
+        var dist=Math.sqrt(distSq);
+        var nx=dx/dist,nz=dz/dist;
+        car.position.x+=nx*6;
+        car.position.z+=nz*8;
+        car.userData.hit=true;
+        G.vehicle.position.x-=nx*3;
+        G.vehicle.position.z-=nz*3;
+        // Efecto de cámara shake
+        G.cameraShake=0.4;
+        // Flash visual rojo
+        var flash=document.createElement('div');
+        flash.style.cssText='position:fixed;inset:0;background:rgba(255,50,50,0.3);z-index:999;pointer-events:none;';
+        document.body.appendChild(flash);
+        requestAnimationFrame(function(){flash.style.transition='opacity 0.4s';flash.style.opacity='0'});
+        setTimeout(function(){flash.remove()},500);
+        notify('💥 ¡CHOQUE! -$20, combustible y sueño afectados.');
+        return;
+      }
+    }
+  }
+
+  function checkVisualEvents(dt){
+    G.lastEventTime+=dt;
+    if(G.lastEventTime>=G.nextEventTime&&!G.currentEventVisual){
+      G.lastEventTime=0;G.nextEventTime=25+Math.random()*30;
+      var evt=VISUAL_EVENTS[Math.floor(Math.random()*VISUAL_EVENTS.length)];
+      spawnVisualEvent(evt);
+    }
+  }
+
+  function spawnVisualEvent(evt){
+    G.currentEventVisual={type:evt.type,timer:evt.dur,impact:evt.impact,result:evt.result,meshes:[]};
+    var ind=document.getElementById('eventIndicator');
+    ind.textContent=evt.msg;ind.classList.add('visible');
+    var z=G.vehicle.position.z-50;
+    if(evt.type==='deer') spawnDeer(z);
+    else if(evt.type==='bird') spawnBirds(z);
+    else if(evt.type==='rainbow') spawnRainbow(z);
+    else if(evt.type==='stalled') spawnStalledCar(z);
+    else if(evt.type==='scenic') spawnScenicView(z);
+  }
+
+  function updateVisualEvents(dt){
+    if(!G.currentEventVisual)return;
+    var evt=G.currentEventVisual;
+    evt.timer-=dt;
+    if(evt.type==='deer'&&evt.meshes.length>0){evt.meshes[0].position.x+=evt.meshes[0].userData.speed*dt*0.3}
+    if(evt.type==='bird'&&evt.meshes.length>0){
+      var tm=G.clock.getElapsedTime();
+      for(var i=0;i<evt.meshes.length;i++){
+        evt.meshes[i].position.z+=evt.meshes[i].userData.speed*dt*0.2;
+        evt.meshes[i].userData.wL.rotation.z=Math.sin(tm*8)*0.5;
+        evt.meshes[i].userData.wR.rotation.z=-Math.sin(tm*8)*0.5;
+      }
+    }
+    if(evt.timer<=0){
+      if(evt.type==='deer'&&G.speed>20){notify('💥 ¡Atropellaste al ciervo!');G.speed*=0.5;G.fuel-=5}
+      else{notify(evt.result);G.eventsCompleted++}
+      if(evt.impact&&evt.impact.sleep&&(evt.type!=='deer'||G.speed<=20))
+        G.sleepiness=Math.max(0,Math.min(100,G.sleepiness+evt.impact.sleep));
+      cleanupEvent();
+    }
+  }
+
+  function cleanupEvent(){
+    var evt=G.currentEventVisual;
+    if(evt&&evt.meshes){for(var i=0;i<evt.meshes.length;i++){if(evt.meshes[i])G.scene.remove(evt.meshes[i])}}
+    G.currentEventVisual=null;
+    document.getElementById('eventIndicator').classList.remove('visible');
+  }
+
+  function spawnDeer(z){
+    var g=new THREE.Group();
+    var body = new THREE.Mesh(new THREE.BoxGeometry(0.8,0.7,1.3),new THREE.MeshLambertMaterial({color:0x8B6914}));
+    setPos(body, 0, 1, 0); g.add(body);
+    var head = new THREE.Mesh(new THREE.BoxGeometry(0.4,0.45,0.5),new THREE.MeshLambertMaterial({color:0x9B7924}));
+    setPos(head, 0, 1.5, 0.7); g.add(head);
+    [[-0.3,0.4,0.4],[0.3,0.4,0.4],[-0.3,0.4,-0.4],[0.3,0.4,-0.4]].forEach(function(p){
+      var leg = new THREE.Mesh(new THREE.CylinderGeometry(0.06,0.06,0.8,4),new THREE.MeshLambertMaterial({color:0x7B5914}));
+      setPos(leg, p[0], p[1], p[2]); g.add(leg);
+    });
+    [-0.12,0.12].forEach(function(x){
+      var antler = new THREE.Mesh(new THREE.CylinderGeometry(0.02,0.02,0.4,3),new THREE.MeshLambertMaterial({color:0x5B4914}));
+      setPos(antler, x, 1.9, 0.7); g.add(antler);
+    });
+    var rc=getRoadCurve(z);
+    var side=Math.random()>0.5?1:-1;
+    setPos(g, rc-side*10, 0, z); g.userData={speed:8+Math.random()*5};
+    G.scene.add(g);G.currentEventVisual.meshes=[g];
+  }
+
+  function spawnBirds(z){
+    var meshes=[];var rc=getRoadCurve(z);
+    for(var i=0;i<3;i++){
+      var bird=new THREE.Group();
+      var bodyB = new THREE.Mesh(new THREE.ConeGeometry(0.15,0.5,4),new THREE.MeshLambertMaterial({color:0x333333}));
+      bodyB.rotation.set(Math.PI/2,0,0);
+      bird.add(bodyB);
+      var wG=new THREE.PlaneGeometry(0.9,0.15);var wM=new THREE.MeshBasicMaterial({color:0x222222,side:THREE.DoubleSide});
+      var wL=new THREE.Mesh(wG,wM);setPos(wL, -0.45, 0, 0);bird.add(wL);
+      var wR=new THREE.Mesh(wG,wM);setPos(wR, 0.45, 0, 0);bird.add(wR);
+      setPos(bird, rc+(Math.random()-0.5)*15, 18+Math.random()*8, z-i*5);
+      bird.userData={wL:wL,wR:wR,speed:10+Math.random()*10};
+      G.scene.add(bird);meshes.push(bird);
+    }
+    G.currentEventVisual.meshes=meshes;
+  }
+
+  function spawnRainbow(z){
+    var g=new THREE.Group();
+    var cols=[0xff0000,0xff7700,0xffff00,0x00ff00,0x0077ff,0x8800ff];
+    for(var i=0;i<cols.length;i++){
+      var a=new THREE.Mesh(new THREE.TorusGeometry(22-i*2.5,1,4,20,Math.PI),new THREE.MeshBasicMaterial({color:cols[i],transparent:true,opacity:0.6}));
+      a.rotation.y=Math.PI/2;setPos(a, 0, 12, 0);g.add(a);
+    }
+    setPos(g, getRoadCurve(z)+45, 0, z);G.scene.add(g);G.currentEventVisual.meshes=[g];
+  }
+
+  function spawnStalledCar(z){
+    var rc=getRoadCurve(z);var s=new THREE.Group();
+    var cc=['#cc4444','#4444cc','#44cc44','#cccc44'];var col=cc[Math.floor(Math.random()*cc.length)];
+    var cbody = new THREE.Mesh(new THREE.BoxGeometry(2.1,0.8,4.5),new THREE.MeshLambertMaterial({color:col}));
+    setPos(cbody, 0, 0.7, 0); s.add(cbody);
+    var ccabin = new THREE.Mesh(new THREE.BoxGeometry(1.7,0.8,2.2),new THREE.MeshLambertMaterial({color:darkenColor(col,0.85)}));
+    setPos(ccabin, 0, 1.5, -0.3); s.add(ccabin);
+    setPos(s, rc+3, 0, z); s.rotation.y=0.3;
+    var hG=new THREE.SphereGeometry(0.12,4,4);var hM=new THREE.MeshBasicMaterial({color:0xffaa00});
+    var hl1 = new THREE.Mesh(hG,hM); setPos(hl1, -1.1, 0.9, 2.3); s.add(hl1);
+    var hl2 = new THREE.Mesh(hG,hM); setPos(hl2, 1.1, 0.9, 2.3); s.add(hl2);
+    G.scene.add(s);G.currentEventVisual.meshes=[s];
+  }
+
+  function spawnScenicView(z){
+    var meshes=[];
+    [-1,1].forEach(function(side){
+      var mGeo=new THREE.ConeGeometry(28+Math.random()*15,55+Math.random()*30,6);
+      var m=new THREE.Mesh(mGeo,new THREE.MeshLambertMaterial({color:new THREE.Color(0.25,0.3,0.35)}));
+      setPos(m, getRoadCurve(z)+side*65, -5, z);
+      var cap=new THREE.Mesh(new THREE.ConeGeometry(6,10,6),new THREE.MeshBasicMaterial({color:0xeeeeff}));
+      setPos(cap, 0, 30, 0); m.add(cap); G.scene.add(m); meshes.push(m);
+    });
+    G.currentEventVisual.meshes=meshes;
+  }
+
+  function updateMotelIndicator(dt){
+    if(G.motelCooldown>0){G.motelCooldown-=dt;return}
+    var minDist=Infinity,idx=-1;
+    for(var i=0;i<G.motels.length;i++){
+      var d=Math.abs(G.motels[i].z-G.vehicle.position.z);
+      if(d<minDist&&!G.motels[i].visited){minDist=d;idx=i}
+    }
+    if(idx>=0&&minDist<2500){
+      G.nearestMotelIdx=idx;
+      var distTo=G.vehicle.position.distanceTo(new THREE.Vector3(G.motels[idx].x,0,G.motels[idx].z));
+      var el=document.getElementById('motelIndicator');
+      if(distTo<45){el.textContent='🏨 Llegaste. E estacionar / F bajar'}
+      else{
+        var kmAway=(distTo*0.005).toFixed(1);
+        el.textContent='🏨 Motel a '+kmAway+' km — recepción y habitaciones';
+      }
+      el.classList.add('visible');
+    }else{document.getElementById('motelIndicator').classList.remove('visible')}
+  }
+
+  function getRefPos(){
+    // Posición de referencia: auto propio, o personaje, o auto del host
+    if(G.vehicle && !G.onFoot) return G.vehicle.position;
+    if(G.character && G.onFoot) return G.character.position;
+    if(MP.hostCarMesh) return MP.hostCarMesh.position;
+    if(G.character) return G.character.position;
+    return new THREE.Vector3(0,0,0);
+  }
+
+  function updateMotelGlow(dt){
+    var ref=getRefPos();
+    for(var i=0;i<G.motels.length;i++){
+      var m=G.motels[i];
+      var glowChild=m.glow;
+      if(glowChild && glowChild.material && glowChild.material.color){
+        glowChild.material.color.setHSL(0.08,0.9,0.55+Math.sin(G.clock.getElapsedTime()*3)*0.18);
+        var d=ref.distanceTo(new THREE.Vector3(m.x,0,m.z));
+        glowChild.scale.setScalar(d<70?1.6:1);
+      }
+    }
+  }
+
+  function updateGasGlow(dt){
+    if(!G.gasStations)return;
+    var refPos = getRefPos();
+    var t = G.clock.getElapsedTime();
+    for(var i=0;i<G.gasStations.length;i++){
+      var gs=G.gasStations[i];
+      if(gs.signGlow && gs.signGlow.material){
+        var intensity = G.fuel<25 ? 0.6+Math.sin(t*8)*0.4 : 0.55+Math.sin(t*2.5)*0.2;
+        gs.signGlow.material.color.setHSL(0.13,1,intensity);
+        var d=refPos.distanceTo(new THREE.Vector3(gs.x,0,gs.z));
+        gs.signGlow.scale.setScalar(d<70?1.8:1);
+      }
+    }
+  }
+
+  function updateHUD(){
+    document.getElementById('distValue').textContent=G.distance.toFixed(1)+' / '+G.targetDistance+' km';
+    document.getElementById('fuelValue').textContent='⛽ '+Math.round(G.fuel)+'%';
+    document.getElementById('fuelValue').style.color=G.fuel<20?'#ef4444':'#e0e0f0';
+    document.getElementById('moneyValue').textContent='💰 $'+Math.round(G.money);
+    // Speed en unidades * 1.5 = km/h realistas (hasta 120 km/h)
+    var kmh = Math.round(Math.abs(G.speed) * 1.5);
+    document.getElementById('speedValue').textContent=kmh;
+    var speedBar = document.getElementById('speedBar');
+    if(speedBar) speedBar.style.width = Math.min(100, (Math.abs(G.speed)/G.maxSpeed)*100) + '%';
+    var h=Math.floor((G.gameTime%1440)/60);var m=Math.floor(G.gameTime%60);
+    document.getElementById('timeValue').textContent=String(h).padStart(2,'0')+':'+String(m).padStart(2,'0');
+  }
+
+  function endGame(){
+    G.running=false;document.getElementById('hud').classList.add('hidden');
+    var s='📏 Distancia: '+G.distance.toFixed(1)+' km<br>📸 Fotos: '+G.photosTaken+'<br>🎯 Eventos: '+G.eventsCompleted+'<br>💰 $'+Math.round(G.money)+'<br>⛽ '+Math.round(G.fuel)+'%';
+    document.getElementById('endStats').innerHTML=s;
+    document.getElementById('endScreen').classList.add('active');
+  }
+
+  function notify(msg){
+    var c=document.getElementById('notifications');
+    var d=document.createElement('div');d.className='notification';d.textContent=msg;
+    c.appendChild(d);setTimeout(function(){if(d.parentNode)d.parentNode.removeChild(d)},3200);
+  }
+
+  // Start loading
+  var pct=0;
+  var iv=setInterval(function(){
+    pct+=Math.random()*12+5;
+    if(pct>=100){pct=100;clearInterval(iv);setTimeout(function(){
+      document.getElementById('loadingScreen').classList.add('hidden');
+      document.getElementById('mainMenu').classList.remove('hidden');
+    },400)}
+    document.getElementById('loadingFill').style.width=pct+'%';
+  },200);
+
+})();
+</script>
+</body>
+</html>
