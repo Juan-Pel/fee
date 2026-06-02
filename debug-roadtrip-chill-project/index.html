@@ -8,6 +8,8 @@
 
 <!-- Módulos del juego -->
 <script src="js/config.js"></script>
+<script src="js/save.js"></script>
+<script src="js/audio.js"></script>
 <script src="js/multiplayer.js"></script>
 <script src="js/world.js"></script>
 <script src="js/vehicle.js"></script>
@@ -1026,6 +1028,21 @@ canvas{position:fixed!important;top:0!important;left:0!important;width:100vw!imp
   window.exitToMainMenu=function(){
     G.paused=false;
     document.getElementById('pauseMenu').classList.add('hidden');
+    
+    // Guardar progreso antes de salir
+    if (window.SAVE && SAVE.saveGameProgress) {
+      const gameState = {
+        distanceTraveled: G.totalDistance || 0,
+        playTime: G.playTime || 0,
+        moneySpent: G.moneySpent || 0,
+        photosTaken: G.photosTaken || 0,
+        eventsCompleted: G.eventsCompleted || 0,
+        position: G.vehicle ? { x: G.vehicle.position.x, z: G.vehicle.position.z } : null
+      };
+      SAVE.saveGameProgress(gameState);
+      notify('💾 Progreso guardado');
+    }
+    
     // Desconectar P2P si estamos en multijugador
     if(MP.peer){try{MP.peer.destroy()}catch(e){}}
     MP.peer=null;MP.enabled=false;MP.connected=false;MP.isHost=false;
@@ -1213,9 +1230,28 @@ canvas{position:fixed!important;top:0!important;left:0!important;width:100vw!imp
     }else{notify('⛽ No se encontró gasolinera.')}
   };
 
-  window.toggleRadio=function(){document.getElementById('radioPanel').classList.toggle('active')};
+  window.toggleRadio=function(){
+    document.getElementById('radioPanel').classList.toggle('active');
+    // Inicializar audio al abrir radio por primera vez
+    if (window.AUDIO && !AUDIO.ctx) {
+      AUDIO.init();
+    }
+  };
 
   window.setRadioPreset=function(videoId){
+    // Usar nuevo sistema de audio si está disponible
+    if (window.AUDIO && AUDIO.setupRadio) {
+      const url = `https://www.youtube.com/watch?v=${videoId}`;
+      AUDIO.setupRadio(url, 'youtube');
+      AUDIO.playRadio();
+      document.getElementById('radioStatus').textContent='🎵 Reproduciendo...';
+      G.radioActive=true;
+      document.getElementById('radioPlayBtn').style.display='none';
+      document.getElementById('radioStopBtn').style.display='block';
+      return;
+    }
+    
+    // Fallback al sistema antiguo
     if(!G.ytReady){
       document.getElementById('radioStatus').textContent='⏳ Cargando YouTube...';
       setTimeout(function(){window.setRadioPreset(videoId)},2000);
@@ -1242,6 +1278,19 @@ canvas{position:fixed!important;top:0!important;left:0!important;width:100vw!imp
     var vid=extractYTId(input);
     if(!vid){statusEl.textContent='❌ No es un link válido de YouTube';return}
 
+    // Usar nuevo sistema de audio si está disponible
+    if (window.AUDIO && AUDIO.setupRadio) {
+      const url = `https://www.youtube.com/watch?v=${vid}`;
+      AUDIO.setupRadio(url, 'youtube');
+      AUDIO.playRadio();
+      statusEl.textContent='🎵 Reproduciendo...';
+      G.radioActive=true;
+      document.getElementById('radioPlayBtn').style.display='none';
+      document.getElementById('radioStopBtn').style.display='block';
+      return;
+    }
+
+    // Fallback al sistema antiguo
     if(!G.ytReady){
       statusEl.textContent='⏳ Cargando YouTube...';
       setTimeout(function(){ window.playRadioLink(); },2000);
@@ -1256,6 +1305,11 @@ canvas{position:fixed!important;top:0!important;left:0!important;width:100vw!imp
   };
 
   window.stopRadio=function(){
+    // Usar nuevo sistema de audio si está disponible
+    if (window.AUDIO && AUDIO.stopRadio) {
+      AUDIO.stopRadio();
+    }
+    // También detener el player de YouTube si existe
     if(G.ytPlayer&&G.ytReady){try{G.ytPlayer.stopVideo()}catch(e){}}
     G.radioActive=false;document.getElementById('radioStatus').textContent='Sin música activa';
     document.getElementById('radioPlayBtn').style.display='block';
@@ -1355,7 +1409,16 @@ canvas{position:fixed!important;top:0!important;left:0!important;width:100vw!imp
   window.enterPhotoMode=function(){if(!G.running)return;G.photoMode=true;document.getElementById('photoMode').classList.add('active')};
   window.exitPhotoMode=function(){G.photoMode=false;document.getElementById('photoMode').classList.remove('active');_camPos=null;_camLook=null;};
   window.takePhoto=function(){
-    G.photosTaken++;notify('📸 ¡Foto #'+G.photosTaken+'!');
+    G.photosTaken++;
+    notify('📸 ¡Foto #'+G.photosTaken+'!');
+    
+    // Registrar en estadísticas guardadas
+    if (window.SAVE) {
+      const current = SAVE.load();
+      current.photosTaken = G.photosTaken;
+      SAVE.save(current);
+    }
+    
     var flash=document.createElement('div');flash.style.cssText='position:fixed;inset:0;background:white;z-index:999;pointer-events:none;';
     document.body.appendChild(flash);
     requestAnimationFrame(function(){flash.style.transition='opacity 0.5s';flash.style.opacity='0'});
@@ -1877,6 +1940,20 @@ canvas{position:fixed!important;top:0!important;left:0!important;width:100vw!imp
   }
 
   window.backToMenu=function(){
+    // Guardar progreso antes de volver al menú
+    if (window.SAVE && SAVE.saveGameProgress) {
+      const gameState = {
+        distanceTraveled: G.totalDistance || 0,
+        playTime: G.playTime || 0,
+        moneySpent: G.moneySpent || 0,
+        photosTaken: G.photosTaken || 0,
+        eventsCompleted: G.eventsCompleted || 0,
+        position: G.vehicle ? { x: G.vehicle.position.x, z: G.vehicle.position.z } : null
+      };
+      SAVE.saveGameProgress(gameState);
+      notify('💾 Progreso guardado');
+    }
+    
     document.getElementById('endScreen').classList.remove('active');
     document.getElementById('hud').classList.add('hidden');
     document.getElementById('mainMenu').classList.remove('hidden');
@@ -2318,6 +2395,31 @@ canvas{position:fixed!important;top:0!important;left:0!important;width:100vw!imp
     }
 
     G.distance += absSpd * dt * 0.005;
+    
+    // Actualizar tiempo jugado y distancia total para estadísticas
+    if (G.playTime === undefined) G.playTime = 0;
+    G.playTime += dt;
+    
+    if (G.totalDistance === undefined) G.totalDistance = 0;
+    G.totalDistance += absSpd * dt * 0.005;
+    
+    // Auto-guardado cada 2 minutos usando el módulo SAVE
+    if (window.SAVE && !SAVE.autoSaveInterval) {
+      SAVE.startAutoSave(function() {
+        if (G.running && G.vehicle) {
+          const gameState = {
+            distanceTraveled: G.totalDistance,
+            playTime: G.playTime,
+            moneySpent: 500 - G.money, // Dinero gastado desde el inicio
+            photosTaken: G.photosTaken || 0,
+            eventsCompleted: G.eventsCompleted || 0,
+            position: { x: G.vehicle.position.x, z: G.vehicle.position.z }
+          };
+          SAVE.saveGameProgress(gameState);
+        }
+      });
+    }
+    
     if(G.distance >= G.targetDistance) endGame();
   }
 
@@ -2752,7 +2854,22 @@ canvas{position:fixed!important;top:0!important;left:0!important;width:100vw!imp
   }
 
   function endGame(){
-    G.running=false;document.getElementById('hud').classList.add('hidden');
+    G.running=false;
+    document.getElementById('hud').classList.add('hidden');
+    
+    // Guardar progreso final
+    if (window.SAVE && SAVE.saveGameProgress) {
+      const gameState = {
+        distanceTraveled: G.totalDistance || G.distance,
+        playTime: G.playTime || 0,
+        moneySpent: 500 - G.money,
+        photosTaken: G.photosTaken || 0,
+        eventsCompleted: G.eventsCompleted || 0,
+        position: G.vehicle ? { x: G.vehicle.position.x, z: G.vehicle.position.z } : null
+      };
+      SAVE.saveGameProgress(gameState);
+    }
+    
     var s='📏 Distancia: '+G.distance.toFixed(1)+' km<br>📸 Fotos: '+G.photosTaken+'<br>🎯 Eventos: '+G.eventsCompleted+'<br>💰 $'+Math.round(G.money)+'<br>⛽ '+Math.round(G.fuel)+'%';
     document.getElementById('endStats').innerHTML=s;
     document.getElementById('endScreen').classList.add('active');
